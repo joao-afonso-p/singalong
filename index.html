@@ -1,0 +1,2351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Singalong</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#170f2e; --panel:#2a1f55; --line:#43357d; --text:#f6f1ff; --muted:#b9aedb;
+  --p1:#ff5a8a; --p2:#2fd9e6; --gold:#ffc83d;
+  --display:'Bricolage Grotesque',system-ui,sans-serif;
+  --body:'Instrument Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.45}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+[hidden]{display:none!important}
+
+.screen{position:fixed;inset:0;display:none}
+.screen.active{display:block}
+
+/* ---------- Library ---------- */
+#lib{overflow:auto;background:radial-gradient(1100px 560px at 85% -10%,#40227a 0%,transparent 62%),var(--bg)}
+.top{position:sticky;top:0;z-index:3;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:18px 32px;background:linear-gradient(var(--bg) 60%,rgba(23,15,46,0));}
+.brand{font-family:var(--display);font-weight:800;font-size:32px;letter-spacing:-.02em;margin-right:auto}
+.btn{border:1.5px solid var(--line);background:var(--panel);padding:10px 18px;border-radius:999px;font-weight:600}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--p1);border-color:var(--p1);color:#2a0b1f}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.search{border:1.5px solid var(--line);background:rgba(255,255,255,.06);border-radius:999px;padding:10px 18px;min-width:220px}
+.search::placeholder{color:var(--muted)}
+#libbody{padding:8px 32px 80px}
+#songs{padding-top:6px}
+.artistgrid{display:flex;flex-wrap:wrap;gap:28px 26px;margin-top:14px}
+.atile{width:200px;text-align:left;background:none;border:0;padding:0}
+.atile .acover{width:200px;aspect-ratio:1;border-radius:22px;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;background:#2a1f55;box-shadow:0 12px 30px rgba(8,2,24,.55);transition:transform .15s}
+.atile .acover.one{display:block;background-size:cover;background-position:center}
+.atile .acover i{display:block;background-size:cover;background-position:center}
+.atile .acover .init{display:grid;place-items:center;grid-column:1/-1;grid-row:1/-1;font-family:var(--display);font-weight:800;font-size:76px;color:rgba(255,255,255,.92)}
+.atile:hover .acover,.atile:focus-visible .acover{transform:translateY(-5px)}
+.atile .t{display:block;margin-top:11px;font-weight:700;font-size:17px;line-height:1.25;word-break:break-word}
+.atile .a{display:block;color:var(--muted);font-size:14px}
+.crumb{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:18px 0 4px}
+.crumb h2{font-family:var(--display);font-weight:800;font-size:clamp(28px,4vw,46px);line-height:1.05;letter-spacing:-.02em;margin:0;word-break:break-word}
+.crumb small{color:var(--muted);font-size:16px}
+.sect{font-family:var(--display);font-weight:800;font-size:22px;margin:20px 0 4px}
+.artist{margin:28px 0 0}
+.artist h2{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.01em;margin:0 0 14px}
+.artist h2 small{font-family:var(--body);font-weight:500;font-size:15px;color:var(--muted);margin-left:8px}
+.grid{display:flex;flex-wrap:wrap;gap:20px}
+.tile{width:176px;text-align:left;background:none;border:0;padding:0}
+.tile .cover{width:176px;aspect-ratio:1;border-radius:16px;background-size:cover;background-position:center;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:64px;color:rgba(255,255,255,.92);box-shadow:0 10px 28px rgba(8,2,24,.5);transition:transform .15s}
+.tile:hover .cover,.tile:focus-visible .cover{transform:translateY(-4px)}
+.tile .t{display:block;margin-top:10px;font-weight:600;line-height:1.25}
+.tile .a{display:block;color:var(--muted);font-size:14px}
+#empty{max-width:620px;margin:12vh auto 0;padding:0 28px}
+#empty h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,5vw,54px);line-height:1.05;letter-spacing:-.02em;margin:0 0 16px}
+#empty p{color:var(--muted);margin:0 0 12px;max-width:52ch}
+#empty .row{display:flex;gap:10px;flex-wrap:wrap;margin:26px 0}
+#empty code{background:rgba(255,255,255,.08);padding:2px 6px;border-radius:6px;font-size:.92em}
+
+/* ---------- Game ---------- */
+#game{background:var(--bg);overflow:hidden}
+#bgvideo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
+#bgvideo.on{opacity:1}
+#stage{position:absolute;inset:0;width:100%;height:100%}
+.hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;padding:20px 28px;pointer-events:none;z-index:2}
+.hud .meta .title{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.01em;text-shadow:0 2px 14px rgba(10,4,26,.8)}
+.hud .meta .artist-name{color:var(--muted);text-shadow:0 2px 10px rgba(10,4,26,.8)}
+.hud .right{display:flex;gap:14px;align-items:flex-start}
+.hud .right .btn{pointer-events:auto;padding:8px 14px;font-size:14px;background:rgba(42,31,85,.8)}
+.score{min-width:150px;padding:10px 18px;border-radius:16px;background:rgba(23,15,46,.72);border:2px solid var(--c);text-align:right}
+.score .pname{display:block;font-size:14px;color:var(--muted)}
+.score .pts{font-family:var(--display);font-weight:800;font-size:40px;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--c)}
+#count{position:absolute;inset:0;display:none;place-items:center;z-index:4;pointer-events:none;font-family:var(--display);font-weight:800;font-size:min(30vw,280px);text-shadow:0 0 60px var(--p1)}
+#count.show{display:grid}
+#count span{animation:pop .85s ease-out}
+@keyframes pop{from{transform:scale(1.5);opacity:0}to{transform:scale(1);opacity:1}}
+.overlay{position:absolute;inset:0;display:none;place-items:center;background:rgba(15,8,33,.76);z-index:5}
+.overlay.show{display:grid}
+.card{background:var(--panel);border:1.5px solid var(--line);border-radius:24px;padding:32px 40px;text-align:center;min-width:min(360px,90vw)}
+.card h2{font-family:var(--display);font-weight:800;font-size:32px;margin:0 0 6px;letter-spacing:-.01em}
+.card p{margin:0 0 18px;color:var(--muted)}
+.card .stack{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+.bigscore{font-family:var(--display);font-weight:800;font-size:84px;line-height:1;color:var(--p1);font-variant-numeric:tabular-nums;margin:10px 0 4px}
+.rating{font-family:var(--display);font-weight:800;font-size:28px;color:var(--gold);margin-bottom:6px}
+
+/* ---------- Settings ---------- */
+dialog{border:1.5px solid var(--line);border-radius:24px;background:var(--panel);color:var(--text);padding:28px 32px;width:min(520px,92vw)}
+dialog::backdrop{background:rgba(10,4,26,.7)}
+dialog h2{font-family:var(--display);font-weight:800;font-size:28px;margin:0 0 18px}
+.field{margin:0 0 20px}
+.field label{display:block;font-weight:600;margin-bottom:6px}
+.field select{width:100%;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);background:#1f1642}
+.field input[type=range]{width:100%;accent-color:var(--p1)}
+.hint{font-size:14px;color:var(--muted);margin:4px 0 0}
+.meter{position:relative;height:16px;border-radius:999px;background:#1b1238;border:1.5px solid var(--line);overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--p2),var(--p1))}
+.meter b{position:absolute;top:-2px;bottom:-2px;width:3px;background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.readout{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);margin-top:6px}
+.readout strong{color:var(--text);font-family:var(--display);font-size:18px}
+
+#toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);background:#fff;color:#1b1038;padding:12px 20px;border-radius:14px;font-weight:600;max-width:min(560px,92vw);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#tour{overflow:auto;background:radial-gradient(1100px 560px at 15% -10%,#40227a 0%,transparent 62%),var(--bg)}
+#tourBody{max-width:1000px;margin:0 auto;padding:8px 32px 90px}
+#tourBody h1{font-family:var(--display);font-weight:800;font-size:clamp(32px,5vw,50px);line-height:1.05;letter-spacing:-.02em;margin:18px 0 10px}
+#tourBody h2{font-family:var(--display);font-weight:800;font-size:24px;margin:30px 0 12px}
+.sub{color:var(--muted);max-width:60ch;margin:0 0 22px}
+.plist{display:flex;flex-direction:column;gap:10px;max-width:520px;margin-bottom:14px}
+.prow{display:flex;gap:10px;align-items:center}
+.prow .num{width:28px;text-align:center;color:var(--muted);font-weight:600}
+.prow input{flex:1;padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:#1f1642;color:var(--text)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:16px 0}
+.stepper{display:inline-flex;align-items:center;gap:10px}
+.stepper b{font-family:var(--display);font-size:24px;min-width:2ch;text-align:center}
+.note{color:var(--muted);font-size:14px;margin:6px 0 0}
+.vs{display:flex;gap:18px;align-items:stretch;flex-wrap:wrap;margin:14px 0 8px}
+.vsbox{flex:1;min-width:220px;padding:18px 22px;border-radius:20px;border:2px solid var(--c);background:rgba(23,15,46,.6)}
+.vsbox .big{font-family:var(--display);font-weight:800;font-size:34px;color:var(--c);line-height:1.1;word-break:break-word}
+.vsbox .small{color:var(--muted);font-size:14px}
+.vs .vsmid{align-self:center;font-family:var(--display);font-weight:800;font-size:26px;color:var(--muted)}
+.offers{display:flex;gap:18px;flex-wrap:wrap}
+.offer{width:216px;text-align:left;background:var(--panel);border:1.5px solid var(--line);border-radius:20px;padding:12px;transition:transform .15s,border-color .15s}
+.offer:hover,.offer:focus-visible{transform:translateY(-4px);border-color:var(--gold)}
+.offer .cover{width:100%;aspect-ratio:1;border-radius:14px;background-size:cover;background-position:center;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:64px;color:rgba(255,255,255,.92)}
+.offer .t{display:block;margin-top:10px;font-weight:600;line-height:1.25}
+.offer .a{display:block;color:var(--muted);font-size:14px}
+.lb{display:flex;flex-direction:column;gap:8px;max-width:640px}
+.lbrow{display:flex;align-items:center;gap:14px;padding:12px 18px;border-radius:16px;background:var(--panel);border:1.5px solid var(--line)}
+.lbrow.first{border-color:var(--gold)}
+.lbrow .rank{font-family:var(--display);font-weight:800;font-size:24px;width:30px;color:var(--gold)}
+.lbrow .who{font-weight:600;font-size:18px;flex:1}
+.lbrow .meta{color:var(--muted);font-size:14px}
+.lbrow .tot{font-family:var(--display);font-weight:800;font-size:26px;font-variant-numeric:tabular-nums}
+.podium{display:flex;gap:16px;flex-wrap:wrap;margin:18px 0}
+.pod{flex:1;min-width:200px;max-width:300px;padding:20px;border-radius:22px;background:var(--panel);border:2px solid var(--line);text-align:center}
+.pod.p1{border-color:var(--gold);box-shadow:0 0 40px rgba(255,200,61,.25)}
+.pod .pos{font-family:var(--display);font-weight:800;font-size:15px;color:var(--muted)}
+.pod .nm{font-family:var(--display);font-weight:800;font-size:30px;line-height:1.1;margin:4px 0;word-break:break-word}
+.pod .pts{font-family:var(--display);font-weight:800;font-size:38px;color:var(--gold);font-variant-numeric:tabular-nums}
+.pod .ttl{color:var(--muted);font-size:14px}
+.bracket{display:flex;gap:26px;overflow:auto;padding:6px 2px 14px}
+.round{display:flex;flex-direction:column;justify-content:space-around;gap:14px;min-width:210px}
+.round h3{font-family:var(--display);font-size:15px;color:var(--muted);margin:0 0 2px}
+.mbox{border:1.5px solid var(--line);border-radius:14px;background:var(--panel);padding:6px 12px}
+.mbox.next{border-color:var(--gold);box-shadow:0 0 22px rgba(255,200,61,.28)}
+.mbox .r{display:flex;justify-content:space-between;gap:12px;padding:4px 0}
+.mbox .r+.r{border-top:1px solid var(--line)}
+.mbox .win{font-weight:800;color:var(--gold)}
+.mbox .tbd{color:var(--muted);font-style:italic}
+.resume{padding:22px 26px;border-radius:20px;background:var(--panel);border:1.5px solid var(--line);max-width:560px}
+#autoOv .meter{width:min(320px,70vw);margin:8px auto 18px}
+.check{display:flex;gap:10px;align-items:flex-start;font-weight:600}
+.check input{margin-top:4px;accent-color:var(--p1)}
+dialog input[type=text]{width:100%;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);background:#1f1642;color:var(--text)}
+#driveDlg{max-height:92vh;overflow:auto}
+details.steps{background:rgba(255,255,255,.05);border-radius:14px;padding:10px 14px;margin:0 0 18px}
+details.steps summary{cursor:pointer;font-weight:600}
+details.steps ol{padding-left:20px;margin:10px 0}
+details.steps li{margin:7px 0}
+dialog code{background:rgba(255,255,255,.1);padding:2px 6px;border-radius:6px;word-break:break-all}
+.drivelist{margin-top:10px;max-height:240px;overflow:auto;border:1.5px solid var(--line);border-radius:14px;padding:6px}
+.dentry{display:flex;gap:10px;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:10px}
+.dentry:hover,.dentry:focus-visible{background:rgba(255,255,255,.08)}
+.dhead{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:4px 6px 8px;font-weight:600;font-size:14px}
+#scores{display:flex;gap:10px}
+.score .streak{display:block;font-size:13px;font-weight:700;color:#fff;min-height:1.3em}
+.score .streak.hot{color:#ffb347}
+.score .streak.pulse{animation:chip .4s ease-out}
+@keyframes chip{0%{transform:scale(1.45)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.score .streak.pulse{animation:none}}
+.score .live{display:block;font-size:13px;font-weight:600;color:var(--gold);min-height:1.3em}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:999px;overflow:hidden}
+.segbtn{background:var(--panel);border:0;padding:10px 16px;font-weight:600}
+.segbtn[aria-pressed=true]{background:var(--p1);color:#2a0b1f}
+.rboard{display:flex;gap:16px;justify-content:center;margin:14px 0 8px;flex-wrap:wrap}
+.rcard{min-width:170px;padding:14px 20px;border-radius:18px;border:2px solid var(--c);background:rgba(23,15,46,.6)}
+.rname{color:var(--muted);font-size:15px}
+.rscore{font-family:var(--display);font-weight:800;font-size:56px;line-height:1.05;color:var(--c);font-variant-numeric:tabular-nums}
+.rtitle{font-family:var(--display);font-weight:800;font-size:21px;color:var(--gold)}
+.rbest{color:var(--gold);font-weight:600;margin:0 0 6px;min-height:1.3em}
+.psec{border:1.5px solid var(--line);border-radius:18px;padding:6px 16px 4px;margin:0 0 18px}
+.psec legend{font-family:var(--display);font-weight:800;font-size:19px;padding:0 8px;color:var(--c)}
+.psec .field{margin:0 0 14px}
+.psec input[type=text]{width:100%;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);background:#1f1642}
+.psec select+select{margin-top:8px}
+#syncLine{font-family:var(--display);font-weight:800;font-size:28px;line-height:1.2;color:var(--gold);margin:4px auto 18px;max-width:30ch}
+.card .tip{font-size:14px;color:var(--muted);margin:16px 0 0;max-width:34ch}
+@media (prefers-reduced-motion:reduce){#count span{animation:none}.tile .cover{transition:none}}
+</style>
+</head>
+<body>
+
+<!-- ===== Library ===== -->
+<div id="lib" class="screen active">
+  <div class="top">
+    <div class="brand">Singalong</div>
+    <input id="search" class="search" type="search" placeholder="Search songs or artists" aria-label="Search songs or artists" hidden>
+    <div class="seg" role="group" aria-label="Game mode">
+      <button class="segbtn" id="pmFree" aria-pressed="true">Free play</button>
+      <button class="segbtn" id="pmParty" aria-pressed="false">Party</button>
+      <button class="segbtn" id="pmChamp" aria-pressed="false">Championship</button>
+    </div>
+    <div class="seg" role="group" aria-label="Number of players">
+      <button class="segbtn" id="mode1" aria-pressed="true">1 player</button>
+      <button class="segbtn" id="mode2" aria-pressed="false">2 players</button>
+    </div>
+    <button class="btn" id="btnReopen" hidden></button>
+    <button class="btn primary" id="btnFolder">Open song folder</button>
+    <button class="btn" id="btnFiles">Add files</button>
+    <button class="btn" id="btnDrive">Google Drive</button>
+    <button class="btn" id="btnDriveRefresh" hidden>Refresh Drive</button>
+    <button class="btn ghost" id="btnDemo">Demo song</button>
+    <button class="btn ghost" id="btnSettings">Mic &amp; timing</button>
+  </div>
+
+  <section id="empty">
+    <h1>Pick a folder and start singing.</h1>
+    <p>Each song lives in its own folder: an audio file plus either a <code>song.json</code> or a standard UltraStar <code>.txt</code>. Folders made by UltraStar Deluxe or USDB Syncer work as they are, with their cover and video.</p>
+    <p>Nothing is uploaded. Your files are read in this browser only.</p>
+    <div class="row">
+      <button class="btn primary" id="btnFolder2">Open song folder</button>
+      <button class="btn" id="btnDrive2">Open from Google Drive</button>
+      <button class="btn" id="btnDemo2">Try the demo song</button>
+    </div>
+    <p>Put short looping videos in a folder called <code>backgrounds</code> inside your song folder and they will play behind the notes.</p>
+  </section>
+
+  <div id="libbody" hidden>
+    <div id="songs"></div>
+  </div>
+</div>
+
+<!-- ===== Game ===== -->
+<div id="game" class="screen">
+  <video id="bgvideo" muted playsinline></video>
+  <canvas id="stage"></canvas>
+  <div class="hud">
+    <div class="meta"><div class="title" id="hudTitle"></div><div class="artist-name" id="hudArtist"></div></div>
+    <div class="right">
+      <button class="btn" id="btnFull">Full screen</button>
+      <button class="btn" id="btnPause">Pause</button>
+      <div id="scores"></div>
+    </div>
+  </div>
+  <div id="count"><span></span></div>
+  <div class="overlay" id="pauseOv">
+    <div class="card">
+      <h2>Paused</h2>
+      <p>Press Space to carry on.</p>
+      <div class="stack">
+        <button class="btn primary" id="btnResume">Resume</button>
+        <button class="btn" id="btnRestart">Restart song</button>
+        <button class="btn" id="btnSync">Fix sync</button>
+        <button class="btn" id="btnAutoSync">Auto-sync again</button>
+        <button class="btn" id="btnPitchFix">Notes off? Match my singing</button>
+        <button class="btn" id="btnQuit">Back to songs</button>
+      </div>
+      <p class="tip">Lyrics off from the music? While singing, press → if they come too early and ← if too late (Shift for bigger steps). Notes sitting too low or high for your singing? Press ↑ or ↓, or sing for a few seconds and use Match my singing.</p>
+    </div>
+  </div>
+  <div class="overlay" id="syncOv">
+    <div class="card">
+      <h2>Sync the lyrics</h2>
+      <p>The music is playing. Press <b>Enter</b> the moment you hear the first words:</p>
+      <div id="syncLine"></div>
+      <div class="stack">
+        <button class="btn primary" id="btnTap">Now! (Enter)</button>
+        <button class="btn" id="btnSyncReset">Use the original timing</button>
+        <button class="btn" id="btnSyncCancel">Cancel</button>
+      </div>
+      <p class="tip">If the lyrics drift later in the song, press ] when they are early near the end, or [ when they are late.</p>
+    </div>
+  </div>
+  <div class="overlay" id="autoOv">
+    <div class="card">
+      <h2>Matching the lyrics</h2>
+      <p id="autoMsg">Listening to the audio…</p>
+      <div class="meter" aria-hidden="true"><i id="autoBar"></i></div>
+      <button class="btn" id="btnAutoSkip">Skip</button>
+    </div>
+  </div>
+  <div class="overlay" id="resultOv">
+    <div class="card">
+      <div class="rating" id="rWinner"></div>
+      <div class="rboard" id="rBoard"></div>
+      <p id="rSong"></p>
+      <p class="rbest" id="rBest"></p>
+      <div class="stack">
+        <button class="btn primary" id="btnAgain">Sing it again</button>
+        <button class="btn" id="btnBack">Back to songs</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Google Drive ===== -->
+<dialog id="driveDlg">
+  <h2>Google Drive</h2>
+  <details class="steps" id="driveHelp">
+    <summary>First time? How to get a Client ID (about 5 minutes, free)</summary>
+    <ol>
+      <li>Open <b>console.cloud.google.com</b> and create a project.</li>
+      <li>In <b>APIs &amp; Services</b>, open <b>Library</b>, find <b>Google Drive API</b> and click <b>Enable</b>.</li>
+      <li>Set up the consent screen (it may be called <b>Google Auth Platform</b> or <b>OAuth consent screen</b>). Choose <b>External</b>, leave it in <b>Testing</b>, and add your own Google account under <b>Test users</b>.</li>
+      <li>Go to <b>Credentials</b>, click <b>Create credentials</b>, then <b>OAuth client ID</b>, and choose <b>Web application</b>. Under <b>Authorized JavaScript origins</b> add this page's address: <code id="driveOrigin"></code> (and your GitHub Pages address too, if you use it). No redirect address is needed.</li>
+      <li>Copy the <b>Client ID</b> and paste it below.</li>
+    </ol>
+    <p class="hint">While the app is in Testing mode, Google shows an "unverified app" warning the first time and may ask you to sign in again after about a week. That is normal for a personal project. This app only asks for read-only access to your Drive and never uploads or changes anything.</p>
+  </details>
+  <div class="field"><label for="driveClient">Client ID</label><input id="driveClient" type="text" placeholder="123456789-abc.apps.googleusercontent.com" spellcheck="false" autocomplete="off"></div>
+  <div class="field"><button class="btn" id="driveSignIn">Sign in with Google</button><span class="hint" id="driveWho" style="margin-left:10px"></span></div>
+  <div class="field">
+    <label for="driveFolder">Song folder</label>
+    <input id="driveFolder" type="text" placeholder="Paste a Drive folder link, or browse" spellcheck="false" autocomplete="off">
+    <div style="margin-top:8px"><button class="btn" id="driveBrowseBtn">Browse my Drive</button></div>
+    <div id="driveBrowse" class="drivelist" hidden></div>
+  </div>
+  <label class="check"><input type="checkbox" id="driveAdd"><span>Add to the songs already loaded<br><span class="hint">Leave this unticked to replace the current list, for example when switching from a local folder.</span></span></label>
+  <p class="hint" id="driveMsg" role="status"></p>
+  <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px"><button class="btn" id="driveCancel">Cancel</button><button class="btn primary" id="driveLoad">Load songs</button></div>
+</dialog>
+
+<!-- ===== Party and Championship ===== -->
+<div id="tour" class="screen">
+  <div class="top">
+    <div class="brand" id="tourTitle">Party night</div>
+    <button class="btn" id="tourMics">Check microphones</button>
+    <button class="btn" id="tourExit">Back to songs</button>
+  </div>
+  <div id="tourBody"></div>
+</div>
+
+<!-- ===== Settings ===== -->
+<dialog id="settings">
+  <h2>Mic &amp; timing</h2>
+  <div id="pSettings"></div>
+  <div class="field">
+    <label for="lat">Voice delay: <span id="latOut"></span> ms</label>
+    <input id="lat" type="range" min="0" max="600" step="10">
+    <p class="hint">Sing along on the beat. If the colour fills a note late, raise this until it starts exactly with the note. It covers mic delay and speaker delay together: USB mics and Bluetooth speakers often need 150 ms or more.</p>
+  </div>
+  <div class="field">
+    <label for="tol">Difficulty</label>
+    <select id="tol">
+      <option value="2">Easy, within 2 semitones</option>
+      <option value="1.25">Normal, within 1 semitone</option>
+      <option value="0.7">Hard, within half a semitone</option>
+    </select>
+    <p class="hint">Singing an octave higher or lower than the original counts as correct.</p>
+  </div>
+  <div class="field">
+    <label for="rlang">Rating titles</label>
+    <select id="rlang"><option value="en">English</option><option value="pt">Português</option></select>
+  </div>
+  <div class="field">
+    <label class="check"><input type="checkbox" id="autosync"><span>Match the lyrics to the audio automatically<br><span class="hint">The first time you play a song, the app listens to it for a few seconds and lines the lyrics up. You can always fix it by hand with Fix sync.</span></span></label>
+  </div>
+  <div class="field">
+    <label class="check"><input type="checkbox" id="fxOn"><span>Celebration effects<br><span class="hint">Stars for golden notes and a glow that builds while you hit note after note. They never change the score.</span></span></label>
+  </div>
+  <p class="hint">Tip: speakers leak into the mics. Hold each mic close to your mouth, and raise a player's gate if the song or the other singer scores points for them.</p>
+  <div style="text-align:right;margin-top:16px"><button class="btn primary" id="btnCloseSettings">Done</button></div>
+</dialog>
+
+<input type="file" id="dirInput" webkitdirectory multiple hidden>
+<input type="file" id="fileInput" multiple accept=".json,audio/*,image/*,video/*" hidden>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   Pure helpers (no DOM). Kept together so they can be tested in Node.
+   ===================================================================== */
+/*PURE-START*/
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const midiToFreq = m => 440 * Math.pow(2, (m - 69) / 12);
+const wrap12 = d => (((d + 6) % 12) + 12) % 12 - 6;      // fold a pitch difference into [-6, 6)
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const noteName = m => { const r = Math.round(m); return NOTE_NAMES[((r % 12) + 12) % 12] + (Math.floor(r / 12) - 1); };
+
+// YIN pitch detector. Returns {freq, clarity} or null.
+const YIN_CM = new Float32Array(4096);
+function yin(buf, sr) {
+  const n = buf.length;
+  const minLag = Math.max(2, Math.floor(sr / 1000));
+  const maxLag = Math.min(Math.floor(sr / 75), (n >> 1));
+  const W = n - maxLag, cm = YIN_CM;
+  let run = 0; cm[0] = 1;
+  for (let tau = 1; tau <= maxLag; tau++) {
+    let sum = 0;
+    for (let j = 0; j < W; j++) { const d = buf[j] - buf[j + tau]; sum += d * d; }
+    run += sum;
+    cm[tau] = run > 0 ? sum * tau / run : 1;
+  }
+  let tau = -1;
+  for (let t = minLag; t < maxLag; t++) {
+    if (cm[t] < 0.2) { while (t + 1 < maxLag && cm[t + 1] < cm[t]) t++; tau = t; break; }
+  }
+  if (tau < 0) return null;
+  const x0 = cm[tau - 1], x1 = cm[tau], x2 = cm[tau + 1];
+  const den = x0 + x2 - 2 * x1;
+  const better = tau + (den ? (x0 - x2) / (2 * den) : 0);
+  return { freq: sr / better, clarity: 1 - x1 };
+}
+
+// Validate and normalise a song.json into {lines, notes, total, minP, maxP, end}
+function normalizeChart(json) {
+  const lines = [], notes = [];
+  for (const L of (json.lines || [])) {
+    const syl = (L.syllables || []).map(s => {
+      const pitch = (s.pitch === null || s.pitch === undefined) ? null : +s.pitch;
+      return { text: String(s.text ?? ''), start: +s.start, end: +s.end, pitch,
+               type: s.type || (pitch === null ? 'freestyle' : 'normal'), hits: [] };
+    }).filter(s => isFinite(s.start) && isFinite(s.end) && s.end > s.start);
+    if (!syl.length) continue;
+    syl.sort((a, b) => a.start - b.start);
+    lines.push({ start: typeof L.start === 'number' ? L.start : syl[0].start,
+                 end: typeof L.end === 'number' ? L.end : syl[syl.length - 1].end, syl });
+    for (const s of syl) notes.push(s);
+  }
+  if (!notes.length) throw new Error('no usable lyrics or notes');
+  lines.sort((a, b) => a.start - b.start);
+  notes.sort((a, b) => a.start - b.start);
+  let total = 0, minP = Infinity, maxP = -Infinity;
+  for (const n of notes) {
+    total += (n.end - n.start) * (n.type === 'golden' ? 2 : 1);
+    if (n.pitch !== null) { minP = Math.min(minP, n.pitch); maxP = Math.max(maxP, n.pitch); }
+  }
+  if (!isFinite(minP)) { minP = 60; maxP = 60; }
+  return { lines, notes, total, minP, maxP, end: notes[notes.length - 1].end };
+}
+
+// UltraStar .txt -> our chart schema. Pitch 0 = C4 (MIDI 60). One beat = 15/BPM seconds.
+function parseUltraStar(text) {
+  const tags = {}, body = [];
+  for (const raw of text.replace(/^\uFEFF/, '').split(/\r?\n/)) {
+    const line = raw.replace(/[\r\n]+$/, '');         // keep trailing spaces: they mark word breaks
+    if (!line.trim()) continue;
+    if (line[0] === '#') { const i = line.indexOf(':'); if (i > 0) tags[line.slice(1, i).trim().toUpperCase()] = line.slice(i + 1).trim(); }
+    else body.push(line);
+  }
+  const num = v => parseFloat(String(v ?? '').replace(',', '.'));
+  const bpm0 = num(tags.BPM), gap = (num(tags.GAP) || 0) / 1000;
+  if (!(bpm0 > 0)) throw new Error('no #BPM in the .txt');
+  const relative = /^yes$/i.test(tags.RELATIVE || '');
+  const changes = [[0, bpm0]];
+  for (const l of body) if (l[0] === 'B') { const p = l.slice(1).trim().split(/\s+/).map(num); if (p.length >= 2 && p[1] > 0) changes.push([p[0], p[1]]); }
+  changes.sort((a, b) => a[0] - b[0]);
+  const toSec = beat => {
+    let t = gap, pb = 0, bpm = changes[0][1];
+    for (let i = 1; i < changes.length && changes[i][0] < beat; i++) { t += (changes[i][0] - pb) * 15 / bpm; pb = changes[i][0]; bpm = changes[i][1]; }
+    return t + (beat - pb) * 15 / bpm;
+  };
+  const lines = []; let cur = [], offset = 0, singer = 1;
+  const flush = () => {
+    if (!cur.length) return;
+    cur.forEach((s, i) => {
+      if (i > 0 && /^\s/.test(s.text)) { s.text = s.text.replace(/^\s+/, ''); if (!/\s$/.test(cur[i - 1].text)) cur[i - 1].text += ' '; }
+    });
+    cur[0].text = cur[0].text.replace(/^\s+/, ''); cur[cur.length - 1].text = cur[cur.length - 1].text.replace(/\s+$/, '');
+    lines.push({ syllables: cur }); cur = [];
+  };
+  for (const l of body) {
+    const c = l[0];
+    if (c === 'E') break;
+    if (c === 'P') { flush(); singer = parseInt(l.slice(1)) || 1; continue; }     // duets: keep singer 1 only
+    if (c === '-') {
+      flush();
+      if (relative) { const p = l.slice(1).trim().split(/\s+/).map(num); offset += (p.length > 1 ? p[1] : p[0]) || 0; }
+      continue;
+    }
+    if (':*FRG'.includes(c)) {
+      const m = l.match(/^(.)\s+(-?\d+)\s+(\d+)\s+(-?\d+)(?: (.*))?$/);
+      if (!m || singer !== 1) continue;
+      const start = +m[2] + (relative ? offset : 0), dur = +m[3];
+      if (dur <= 0) continue;
+      const free = 'FRG'.includes(c);
+      cur.push({ text: m[5] ?? '', start: toSec(start), end: toSec(start + dur), pitch: free ? null : 60 + (+m[4]),
+                 type: free ? 'freestyle' : c === '*' ? 'golden' : 'normal' });
+    }
+  }
+  flush();
+  return { title: tags.TITLE || '', artist: tags.ARTIST || '', audio: tags.AUDIO || tags.MP3 || '', cover: tags.COVER || '',
+           video: tags.VIDEO || '', videoGap: num(tags.VIDEOGAP) || 0, bpm: bpm0, lines };
+}
+
+// SingStar-style titles. Score is 0..10000. [minimum score, English, Portuguese]
+const RATINGS = [[0, 'Tone deaf', 'Duro de ouvido'], [1000, 'Shower singer', 'Cantor de chuveiro'], [2500, 'Warming up', 'A aquecer'],
+  [4000, 'Karaoke regular', 'Cantor de karaoke'], [5500, 'Crowd pleaser', 'Anima a festa'], [7000, 'Rising star', 'Estrela em ascensão'],
+  [8000, 'Pop star', 'Pop star'], [9000, 'Superstar', 'Superestrela'], [9700, 'Legend', 'Lenda']];
+function ratingFor(score, lang) { let r = RATINGS[0]; for (const x of RATINGS) if (score >= x[0]) r = x; return r[lang === 'pt' ? 2 : 1]; }
+
+// ----- Automatic sync: find a and b so that chart time t sits at audio time a*t + b -----
+// Radix-2 FFT magnitude of a Hann-windowed 2048-sample frame.
+const FFT = (() => {
+  const N = 2048, bits = 11, cs = new Float32Array(N / 2), sn = new Float32Array(N / 2), rev = new Uint16Array(N);
+  const win = new Float32Array(N), re = new Float32Array(N), im = new Float32Array(N);
+  for (let i = 0; i < N / 2; i++) { cs[i] = Math.cos(2 * Math.PI * i / N); sn[i] = -Math.sin(2 * Math.PI * i / N); }
+  for (let i = 0; i < N; i++) { let r = 0; for (let b = 0; b < bits; b++) if (i & (1 << b)) r |= 1 << (bits - 1 - b); rev[i] = r; win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1)); }
+  return function (x, off, mags) {
+    for (let i = 0; i < N; i++) { re[rev[i]] = (x[off + i] || 0) * win[i]; im[rev[i]] = 0; }
+    for (let size = 2; size <= N; size <<= 1) {
+      const half = size >> 1, step = N / size;
+      for (let i = 0; i < N; i += size) for (let j = 0, k = 0; j < half; j++, k += step) {
+        const p = i + j, q = p + half, tr = re[q] * cs[k] - im[q] * sn[k], ti = re[q] * sn[k] + im[q] * cs[k];
+        re[q] = re[p] - tr; im[q] = im[p] - ti; re[p] += tr; im[p] += ti;
+      }
+    }
+    for (let i = 0; i < N / 2; i++) mags[i] = Math.hypot(re[i], im[i]);
+  };
+})();
+// How much of the sound in each frame sits on each of the 12 pitch classes (150 to 1500 Hz, roughly the vocal range).
+function chromaFrames(x, sr, hopSec = 0.03) {
+  const N = 2048, step = Math.round(hopSec * sr), F = Math.max(0, Math.floor(x.length / step));
+  const chroma = new Float32Array(F * 12), mags = new Float32Array(N / 2), binPc = new Int8Array(N / 2).fill(-1);
+  for (let k = 1; k < N / 2; k++) { const f = k * sr / N; if (f >= 150 && f <= 1500) binPc[k] = (((Math.round(69 + 12 * Math.log2(f / 440))) % 12) + 12) % 12; }
+  for (let f = 0; f < F; f++) {
+    FFT(x, f * step - N / 2, mags);                 // window centred on the frame's own time stamp
+    const o = f * 12; let tot = 0;
+    for (let k = 1; k < N / 2; k++) { const pc = binPc[k]; if (pc < 0) continue; const e = mags[k] * mags[k]; chroma[o + pc] += e; tot += e; }
+    if (tot > 1) for (let c = 0; c < 12; c++) chroma[o + c] /= tot;
+    else for (let c = 0; c < 12; c++) chroma[o + c] = 0;
+  }
+  return { chroma, hop: step / sr };
+}
+// Compare the chart's notes with the audio's pitch-class profile at every candidate alignment and key shift.
+function alignChart(notes, chroma, hop) {
+  const F = Math.floor(chroma.length / 12), idxs = [], pcs0 = [];
+  for (const n of notes) {
+    if (n.pitch === null) continue;
+    const t = n.t0 || [n.start, n.end], p = n.p0 !== undefined ? n.p0 : n.pitch, pc = ((Math.round(p) % 12) + 12) % 12;
+    for (let k = Math.ceil(t[0] / hop); k * hop < t[1]; k++) { idxs.push(k); pcs0.push(pc); }
+  }
+  const M = idxs.length;
+  if (M < 40 || F < 100) return null;
+  const shifted = s => Int8Array.from(pcs0, p => (((p + s) % 12) + 12) % 12);
+  const hitInt = (a, b, P) => {                       // chart pitch classes moved by a whole number of semitones
+    let h = 0;
+    for (let m = 0; m < M; m++) {
+      const k = Math.round((a * idxs[m] * hop + b) / hop);
+      if (k < 0 || k >= F) continue;
+      const o = k * 12, p = P[m];
+      h += chroma[o + p] + 0.5 * (chroma[o + (p + 11) % 12] + chroma[o + (p + 1) % 12]);   // the note, plus half credit for a semitone either side
+    }
+    return h;
+  };
+  const cAt = (o, x) => { const i0 = Math.floor(x), f = x - i0, a0 = ((i0 % 12) + 12) % 12; return (1 - f) * chroma[o + a0] + f * chroma[o + (a0 + 1) % 12]; };
+  const hitFrac = (a, b, sh) => {                     // any shift, including a fraction of a semitone
+    let h = 0;
+    for (let m = 0; m < M; m++) {
+      const k = Math.round((a * idxs[m] * hop + b) / hop);
+      if (k < 0 || k >= F) continue;
+      const o = k * 12, x = pcs0[m] + sh;
+      h += cAt(o, x) + 0.5 * (cAt(o, x - 1) + cAt(o, x + 1));
+    }
+    return h;
+  };
+  const bs = []; for (let b = -25; b <= 60; b += 0.1) bs.push(b);
+  const rowFor = (a, P) => {
+    const sc = bs.map(b => hitInt(a, b, P));
+    let best = -1, bi = 0, sum = 0;
+    sc.forEach((v, i) => { sum += v; if (v > best) { best = v; bi = i; } });
+    const mean = sum / sc.length; let v2 = 0; sc.forEach(v => { v2 += (v - mean) * (v - mean); });
+    return { a, best, b: bs[bi], mean, sd: Math.sqrt(v2 / sc.length) };
+  };
+  // 1) a = 1: try the chart as written and moved up or down by up to 3 semitones
+  let s0 = 0, base = null;
+  for (let s = -3; s <= 3; s++) { const r = rowFor(1, shifted(s)); if (!base || r.best > base.best * (s === 0 ? 1 : 1.0)) { if (!base || r.best > base.best) { base = r; s0 = s; } } }
+  const P0 = shifted(s0);
+  // 2) with that key, allow a small speed difference
+  const rows = []; for (let ai = 0; ai <= 12; ai++) rows.push(ai === 6 ? base : rowFor(0.94 + ai * 0.01, P0));
+  const unit = rows[6];
+  let top = rows.reduce((x, y) => y.best > x.best ? y : x);
+  if (top !== unit && top.best < unit.best * 1.06) top = unit;     // only believe a speed change when it clearly wins
+  let best = { a: top.a, b: top.b, h: top.best };
+  for (let da = -0.01; da <= 0.0101; da += 0.002) for (let db = -0.15; db <= 0.1501; db += 0.02) {
+    const a = top.a + da, b = top.b + db, h = hitInt(a, b, P0);
+    if (h > best.h) best = { a, b, h };
+  }
+  const z = (best.h - top.mean) / Math.max(top.sd, 1e-6);
+  // 3) fine key: a fraction of a semitone around the whole-semitone estimate
+  let shift = s0, hs = hitFrac(best.a, best.b, s0);
+  for (let d = -0.75; d <= 0.751; d += 0.25) { if (Math.abs(d) < 0.01) continue; const h = hitFrac(best.a, best.b, s0 + d); if (h > hs) { hs = h; shift = s0 + d; } }
+  const h0 = hitFrac(best.a, best.b, 0);
+  if (shift === 0 || Math.abs(shift) < 0.5 || hs < h0 * 1.05) shift = 0;      // small or doubtful: leave the notes alone
+  else {
+    let bb = { a: best.a, b: best.b, h: hs };
+    for (let da = -0.004; da <= 0.0041; da += 0.002) for (let db = -0.1; db <= 0.1001; db += 0.02) { const h = hitFrac(best.a + da, best.b + db, shift); if (h > bb.h) bb = { a: best.a + da, b: best.b + db, h }; }
+    best = bb;
+  }
+  return { a: Math.round(best.a * 10000) / 10000, b: Math.round(best.b * 1000) / 1000, p: shift, z, strength: best.h / M,
+           conf: z >= 7 ? 'high' : z >= 4 ? 'medium' : 'low' };
+}
+
+// ----- Party and championship logic -----
+function shuffle(arr) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+// Pairs for a party night: whoever has sung least goes first, partners are those who sang least and met them least.
+function makeSchedule(n, rounds) {
+  const cnt = Array(n).fill(0), met = {}, out = [];
+  let last = null;
+  for (let r = 0; r < rounds; r++) {
+    const order = shuffle([...Array(n).keys()]).sort((x, y) => cnt[x] - cnt[y]);
+    const a = order[0], key = q => Math.min(a, q) + '-' + Math.max(a, q);
+    const rest = order.slice(1).sort((x, y) => cnt[x] - cnt[y] || (met[key(x)] || 0) - (met[key(y)] || 0));
+    let b = rest[0];
+    if (n > 2 && last && last === Math.min(a, b) + '-' + Math.max(a, b) && rest.length > 1) b = rest[1];
+    last = Math.min(a, b) + '-' + Math.max(a, b);
+    cnt[a]++; cnt[b]++; met[key(b)] = (met[key(b)] || 0) + 1;
+    out.push(Math.random() < 0.5 ? [a, b] : [b, a]);
+  }
+  return out;
+}
+// Single-elimination bracket with byes. Each match: {a, b, w, sa, sb, bye}. a and b are player indexes.
+function makeBracket(n) {
+  const size = 1 << Math.ceil(Math.log2(Math.max(2, n)));
+  const ids = shuffle([...Array(n).keys()]), byes = size - n, slots = Array(size).fill(null);
+  let k = 0;
+  for (let s = 0; s < size; s++) { if (s % 2 === 1 && (s - 1) / 2 < byes) slots[s] = null; else slots[s] = ids[k++]; }
+  const mk = (a, b) => ({ a, b, w: null, sa: null, sb: null });
+  const rounds = [[]];
+  for (let i = 0; i < size; i += 2) rounds[0].push(mk(slots[i], slots[i + 1]));
+  for (let m = size / 2; m > 1; m /= 2) rounds.push(Array.from({ length: m / 2 }, () => mk(null, null)));
+  return rounds;
+}
+function bracketAdvance(rounds, r, i, w) {
+  rounds[r][i].w = w;
+  if (r + 1 < rounds.length) { const nx = rounds[r + 1][i >> 1]; if (i % 2 === 0) nx.a = w; else nx.b = w; }
+}
+function bracketResolveByes(rounds) {
+  rounds[0].forEach((m, i) => {
+    if (m.a === null && m.b !== null) { m.bye = true; bracketAdvance(rounds, 0, i, m.b); }
+    else if (m.b === null && m.a !== null) { m.bye = true; bracketAdvance(rounds, 0, i, m.a); }
+  });
+}
+function bracketNext(rounds) {
+  for (let r = 0; r < rounds.length; r++) for (let i = 0; i < rounds[r].length; i++) {
+    const m = rounds[r][i]; if (m.a !== null && m.b !== null && m.w === null) return { r, i, m };
+  }
+  return null;
+}
+/*PURE-END*/
+
+/* =====================================================================
+   Small utilities
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const el = (tag, props = {}, ...kids) => { const e = document.createElement(tag); Object.assign(e, props); e.append(...kids); return e; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem('singalong.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('singalong.' + k, JSON.stringify(v)); } catch {} }
+};
+const settings = {
+  players: LS.get('players', 1),                                  // 1 or 2, always singing at the same time
+  names: LS.get('names', ['Player 1', 'Player 2']),
+  mics: [LS.get('micId', ''), LS.get('micId2', '')],
+  chans: [LS.get('chan1', 'mix'), LS.get('chan2', 'mix')],        // 'mix', 'left' or 'right' (one stereo device shared by two mics)
+  gates: [LS.get('gate', 25), LS.get('gate2', 25)],               // 2..80, also the position of the gold line on the meter
+  latency: LS.get('latency', 100),                                // ms
+  tol: LS.get('tol', 1.25),                                       // semitones
+  rlang: LS.get('rlang', (navigator.language || 'en').toLowerCase().startsWith('pt') ? 'pt' : 'en'),
+  autoSync: LS.get('autosync', true),
+  fx: LS.get('fx', true)                                          // celebration effects (visual only)
+};
+const gateValue = i => 0.2 * Math.pow(settings.gates[i] / 100, 2);   // RMS threshold
+const meterPos = rms => clamp(Math.sqrt(rms / 0.2), 0, 1);
+
+let toastTimer;
+function toast(msg, ms = 5000) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+const idb = {
+  open() { return new Promise((res, rej) => { const r = indexedDB.open('singalong', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
+  async get(k) { const db = await this.open(); return new Promise((res, rej) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); },
+  async set(k, v) { const db = await this.open(); return new Promise((res, rej) => { const q = db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); q.onsuccess = () => res(); q.onerror = () => rej(q.error); }); }
+};
+
+/* =====================================================================
+   Audio: one shared context, the song element, and the players' mics
+   ===================================================================== */
+let ac = null, songAnalyser = null;
+const audio = new Audio();
+audio.preload = 'auto';
+let songGraphReady = false;
+
+function getAC() {
+  if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' });
+  if (ac.state === 'suspended') ac.resume();
+  if (!songGraphReady) {
+    const src = ac.createMediaElementSource(audio);
+    songAnalyser = ac.createAnalyser(); songAnalyser.fftSize = 256;
+    src.connect(songAnalyser); songAnalyser.connect(ac.destination);
+    songGraphReady = true;
+  }
+  return ac;
+}
+
+class Player {
+  constructor(i, name, color, rgb) {
+    Object.assign(this, { i, name, color, rgb, stream: null, src: null, an: null,
+      split: null, buf: new Float32Array(2048), level: 0, smooth: 0, counts: false, hitNow: false, streak: 0, bestStreak: 0, live: '', midi: null, lastVoiced: -1, voiced: false, recent: [] });
+    this.reset();
+  }
+  reset() { this.gained = 0; this.score = 0; this.trail = []; this.y = null; this.streak = 0; this.bestStreak = 0; this.hitNow = false; }
+  async openMic(deviceId, chan = 'mix') {
+    this.closeMic();
+    const ctx = getAC();
+    const audioC = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: chan === 'mix' ? 1 : 2 };
+    if (deviceId) audioC.deviceId = { exact: deviceId };
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: audioC }); }
+    catch (e) {
+      if (deviceId && e.name === 'OverconstrainedError') { delete audioC.deviceId; stream = await navigator.mediaDevices.getUserMedia({ audio: audioC }); }
+      else throw e;
+    }
+    this.stream = stream;
+    this.src = ctx.createMediaStreamSource(stream);
+    this.an = ctx.createAnalyser(); this.an.fftSize = 2048;
+    if (chan === 'mix') this.src.connect(this.an);   // never connected to the speakers, so no feedback
+    else { this.split = ctx.createChannelSplitter(2); this.src.connect(this.split); this.split.connect(this.an, chan === 'left' ? 0 : 1); }
+  }
+  closeMic() {
+    if (this.stream) this.stream.getTracks().forEach(t => t.stop());
+    if (this.src) this.src.disconnect();
+    if (this.split) this.split.disconnect();
+    this.stream = this.src = this.an = this.split = null;
+  }
+  sample() {
+    if (!this.an) { this.voiced = false; return; }
+    this.an.getFloatTimeDomainData(this.buf);
+    let s = 0; for (let i = 0; i < this.buf.length; i++) s += this.buf[i] * this.buf[i];
+    const rms = Math.sqrt(s / this.buf.length);
+    this.level = Math.max(rms, this.level * 0.88);
+    this.smooth = Math.max(rms, this.smooth * 0.92);
+    const now = performance.now() / 1000;
+    if (rms >= gateValue(this.i)) {
+      const r = yin(this.buf, ac.sampleRate);
+      if (r && r.clarity > 0.75) {
+        const m = 69 + 12 * Math.log2(r.freq / 440);
+        this.recent.push(m); if (this.recent.length > 3) this.recent.shift();
+        this.midi = [...this.recent].sort((a, b) => a - b)[this.recent.length >> 1];
+        this.lastVoiced = now;
+      }
+    }
+    this.voiced = now - this.lastVoiced < 0.1;
+    if (!this.voiced) this.recent.length = 0;
+  }
+}
+const players = [new Player(0, settings.names[0] || 'Player 1', '#ff5a8a', '255,90,138'), new Player(1, settings.names[1] || 'Player 2', '#2fd9e6', '47,217,230')];
+const activePlayers = () => players.slice(0, settings.players);
+
+function micError(e) {
+  if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) return 'Microphone blocked. Allow it from the lock icon in the address bar, then try again.';
+  if (e && e.name === 'NotFoundError') return 'No microphone found. Plug one in and pick it under Mic & timing.';
+  return 'Could not open the microphone: ' + (e && e.message ? e.message : e);
+}
+
+/* =====================================================================
+   Library: reading folders, building songs
+   ===================================================================== */
+const AUDIO_EXT = /\.(mp3|m4a|aac|ogg|opus|wav|flac|webm)$/i;
+const IMG_EXT = /\.(jpe?g|png|webp|gif)$/i;
+const VID_EXT = /\.(mp4|webm|mov|m4v)$/i;
+const library = { songs: [], videos: [] };
+let lastHandle = null;
+
+function groupAdd(groups, path, name, getFile) {
+  if (!groups.has(path)) groups.set(path, new Map());
+  groups.get(path).set(name, getFile);
+}
+async function collectHandle(dir, path, groups) {
+  for await (const [name, h] of dir.entries()) {
+    if (name.startsWith('.')) continue;
+    if (h.kind === 'directory') await collectHandle(h, path ? path + '/' + name : name, groups);
+    else groupAdd(groups, path, name, () => h.getFile());
+  }
+}
+function collectFiles(fileList, groups) {
+  for (const f of fileList) {
+    const parts = (f.webkitRelativePath || f.name).split('/');
+    const name = parts.pop();
+    if (name.startsWith('.')) continue;
+    groupAdd(groups, parts.join('/'), name, () => Promise.resolve(f));
+  }
+}
+
+async function readTextSmart(file) {
+  const buf = await file.arrayBuffer();
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+  catch { return new TextDecoder('windows-1252').decode(buf); }       // older UltraStar files
+}
+
+async function buildLibrary(groups, root) {
+  const songs = [], videos = [], videoRefs = [], skipped = [];
+  const isDrive = !!(root && root.drive), hasHandle = !!root && !isDrive;
+  for (const [path, files] of groups) {
+    if (/(^|\/)backgrounds?(\/|$)/i.test(path)) {
+      // from Drive, loops that are too big to fetch before a song starts are skipped
+      for (const [n, g] of files) if (VID_EXT.test(n) && !(isDrive && g.size > 40e6)) { videos.push(g); videoRefs.push(isDrive ? { drive: true, id: g.driveId, key: g.driveKey, name: n } : root ? { path, name: n } : { file: await g() }); }
+      continue;
+    }
+    const names = [...files.keys()];
+    const lower = new Map(names.map(n => [n.toLowerCase(), n]));
+    const findName = n => n ? (files.has(n) ? n : lower.get(String(n).toLowerCase())) : undefined;
+    const entries = names.filter(n => /\.json$/i.test(n)).map(n => [n, 'json']);
+    let found = 0;
+    const txts = names.filter(n => /\.txt$/i.test(n)).map(n => [n, 'txt']);
+    for (const [jn, kind] of entries.concat(txts)) {
+      if (kind === 'txt' && found > 0) continue;            // a song.json in the folder wins over .txt
+      const where = (path ? path + '/' : '') + jn;
+      let json;
+      try {
+        const text = await readTextSmart(await files.get(jn)());
+        if (kind === 'json') json = JSON.parse(text);
+        else {
+          if (!/^\s*#\s*(TITLE|ARTIST|BPM)\s*:/im.test(text)) continue;     // not an UltraStar chart (e.g. a lyrics file)
+          json = parseUltraStar(text);
+        }
+      } catch (e) { if (kind === 'json') skipped.push(where + ': not valid JSON'); else skipped.push(where + ': ' + e.message); continue; }
+      if (!json || !Array.isArray(json.lines)) continue;
+      let chart;
+      try { chart = normalizeChart(json); } catch (e) { skipped.push(where + ': ' + e.message); continue; }
+      const base = jn.replace(/\.[^.]+$/, '');
+      let audioName = findName(json.audio)
+        || names.find(n => AUDIO_EXT.test(n) && n.replace(/\.[^.]+$/, '') === base && !VID_EXT.test(n))
+        || names.find(n => AUDIO_EXT.test(n) && !VID_EXT.test(n));
+      if (!audioName) { skipped.push(where + ': no audio file next to it'); continue; }
+      let videoName = findName(json.video);
+      if (!videoName || !VID_EXT.test(videoName)) videoName = names.find(n => VID_EXT.test(n) && n !== audioName);
+      const coverName = findName(json.cover)
+        || names.find(n => IMG_EXT.test(n) && /^(cover|folder|front)\./i.test(n))
+        || names.find(n => IMG_EXT.test(n) && !/bg|background/i.test(n));
+      let coverUrl = null, coverFile = null;
+      if (coverName && IMG_EXT.test(coverName)) { try { coverFile = await files.get(coverName)(); coverUrl = URL.createObjectURL(coverFile); } catch {} }
+      const getAudio = files.get(audioName), getVideo = videoName ? files.get(videoName) : null;
+      found++;
+      const sid = isDrive ? `drive:${root.id}/${where}` : where;
+      songs.push({ id: sid, title: json.title || base, artist: json.artist || 'Unknown artist', chart, coverUrl,
+        videoGap: json.videoGap || 0,
+        audioUrl: isDrive ? (async () => URL.createObjectURL(await driveBlob(getAudio.driveId, getAudio.driveKey))) : (async () => URL.createObjectURL(await getAudio())),
+        videoUrl: getVideo ? (isDrive ? driveVideoFn(getVideo.driveId, getVideo.driveKey, getVideo.size) : (async () => URL.createObjectURL(await getVideo()))) : null,
+        // what we remember so the library survives a page refresh: paths when we hold a folder handle, otherwise copies of the files
+        meta: isDrive ? { drive: true, audioId: getAudio.driveId, audioKey: getAudio.driveKey, videoId: getVideo ? getVideo.driveId : null, videoKey: getVideo ? getVideo.driveKey : null, videoSize: getVideo ? getVideo.size : 0, coverFile, lines: json.lines, videoGap: json.videoGap || 0 }
+            : hasHandle ? { path, audioName, videoName: videoName || null, coverFile, lines: json.lines, videoGap: json.videoGap || 0 }
+                   : { coverFile, lines: json.lines, videoGap: json.videoGap || 0, audioFile: await getAudio(), videoFile: getVideo ? await getVideo() : null } });
+    }
+  }
+  return { songs, videos, videoRefs, skipped };
+}
+
+async function loadGroups(groups, replace, root = null, quiet = false) {
+  if (!quiet) toast('Reading songs…', 60000);
+  const { songs, videos, videoRefs, skipped } = await buildLibrary(groups, root);
+  if (replace) { library.songs = []; library.videos = []; library.videoRefs = []; }
+  library.songs.push(...songs);
+  library.videos.push(...videos);
+  library.videoRefs = (library.videoRefs || []).concat(videoRefs);
+  library.songs.sort((a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title));
+  renderLibrary();
+  if (skipped.length) console.warn('Skipped:\n' + skipped.join('\n'));
+  let msg = songs.length ? `Loaded ${songs.length} song${songs.length === 1 ? '' : 's'}.` : 'No songs found. Each song folder needs a song.json or an UltraStar .txt, plus an audio file.';
+  if (skipped.length) msg += ` Skipped ${skipped.length}: ${skipped[0]}${skipped.length > 1 ? ' (and more, see the browser console)' : ''}`;
+  if (videos.length) msg += ` ${videos.length} background video${videos.length === 1 ? '' : 's'}.`;
+  try { if (await saveLibrary() && !quiet) msg += ' They will still be here after a refresh.'; }
+  catch (e) { console.warn(e); msg += ' Could not remember them for next time (' + (e.message || e.name) + ').'; }
+  if (!quiet || skipped.length) toast(msg, skipped.length ? 20000 : 6000);
+}
+
+async function openFolder() {
+  if (window.showDirectoryPicker) {
+    try {
+      const h = await window.showDirectoryPicker({ id: 'singalong', mode: 'read' });
+      lastHandle = h; await idb.set('dir', h).catch(() => {});      // remember the folder first, then scan and save
+      await scanHandle(h); updateReopen();
+    } catch (e) { if (e.name !== 'AbortError') toast('Could not open that folder: ' + e.message); }
+  } else {
+    $('#dirInput').click();
+  }
+}
+async function scanHandle(h, quiet = false) {
+  const groups = new Map();
+  await collectHandle(h, '', groups);
+  await loadGroups(groups, true, h, quiet);
+}
+$('#dirInput').addEventListener('change', async e => {
+  const groups = new Map(); collectFiles(e.target.files, groups); e.target.value = '';
+  if (groups.size) await loadGroups(groups, true);
+});
+$('#fileInput').addEventListener('change', async e => {
+  const groups = new Map(); collectFiles(e.target.files, groups); e.target.value = '';
+  if (groups.size) await loadGroups(groups, false);
+});
+
+/* ---------- Remember the library across page refreshes ---------- */
+async function fileFromHandle(path, name) {
+  let d = lastHandle;
+  for (const seg of path.split('/').filter(Boolean)) d = await d.getDirectoryHandle(seg);
+  return (await d.getFileHandle(name)).getFile();
+}
+async function ensureFolderAccess() {
+  if (!lastHandle) return false;
+  try {
+    let p = await lastHandle.queryPermission({ mode: 'read' });
+    if (p !== 'granted') p = await lastHandle.requestPermission({ mode: 'read' });   // needs a click, which playing a song is
+    if (p === 'granted') return true;
+  } catch {}
+  toast('Allow access to your song folder to play songs from it.');
+  return false;
+}
+async function saveLibrary() {
+  const songs = library.songs.filter(s => s.meta).map(s => ({ id: s.id, title: s.title, artist: s.artist, ...s.meta }));
+  if (!songs.length) return false;
+  await idb.set('library', { songs, videoRefs: library.videoRefs || [] });
+  return true;
+}
+function songFromMeta(m) {
+  const chart = normalizeChart({ lines: m.lines });
+  return { id: m.id, title: m.title, artist: m.artist, chart, videoGap: m.videoGap || 0,
+    coverUrl: m.coverFile ? URL.createObjectURL(m.coverFile) : null,
+    audioUrl: async () => URL.createObjectURL(m.audioFile || (m.drive ? await driveBlob(m.audioId, m.audioKey) : await fileFromHandle(m.path, m.audioName))),
+    videoUrl: m.drive ? (m.videoId ? driveVideoFn(m.videoId, m.videoKey, m.videoSize) : null)
+      : ((m.videoFile || m.videoName) ? (async () => URL.createObjectURL(m.videoFile || await fileFromHandle(m.path, m.videoName))) : null),
+    meta: m };
+}
+async function loadCachedLibrary() {
+  const data = await idb.get('library');
+  if (!data || !Array.isArray(data.songs)) return 0;
+  library.songs = [];
+  for (const m of data.songs) { try { library.songs.push(songFromMeta(m)); } catch {} }
+  library.videoRefs = data.videoRefs || [];
+  library.videos = library.videoRefs.map(r => r.file ? (() => Promise.resolve(r.file)) : r.drive ? (() => driveFileObj({ id: r.id, key: r.key, name: r.name, mimeType: 'video/mp4' })) : (() => fileFromHandle(r.path, r.name)));
+  library.songs.sort((a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title));
+  return library.songs.length;
+}
+
+function updateReopen() {
+  $('#btnDriveRefresh').hidden = !(driveCfg().folderId && library.songs.some(s => s.meta && s.meta.drive));
+  const b = $('#btnReopen');
+  const fromFolder = library.songs.some(s => s.meta && s.meta.audioName);
+  if (!lastHandle || (!fromFolder && library.songs.length)) { b.hidden = true; return; }
+  b.hidden = false;
+  b.textContent = fromFolder ? 'Refresh songs' : `Reopen “${lastHandle.name}”`;
+}
+$('#btnReopen').addEventListener('click', async () => {
+  if (!(await ensureFolderAccess())) return;
+  try { await scanHandle(lastHandle); updateReopen(); }
+  catch (e) { toast('Could not read the folder. Choose it again with Open song folder.'); }
+});
+
+function hue(str) { let h = 0; for (const c of str) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; }
+
+let libView = { artist: null };                       // which artist's page is open (null: the artist grid)
+const artistKey = a => (a || '').trim().toLowerCase();
+function groupArtists(songs) {
+  const m = new Map();
+  for (const s of songs) {
+    const k = artistKey(s.artist);
+    if (!m.has(k)) m.set(k, { key: k, name: (s.artist || '').trim() || 'Unknown artist', songs: [] });
+    m.get(k).songs.push(s);
+  }
+  for (const a of m.values()) a.songs.sort((x, y) => x.title.localeCompare(y.title));
+  return [...m.values()].sort((x, y) => x.name.localeCompare(y.name));
+}
+const gradient = str => { const h = hue(str); return `linear-gradient(135deg,hsl(${h} 70% 56%),hsl(${(h + 55) % 360} 70% 34%))`; };
+function songTile(s, showArtist) {
+  const cover = el('span', { className: 'cover', textContent: s.coverUrl ? '' : (s.title[0] || '♪').toUpperCase() });
+  cover.style.background = s.coverUrl ? `center/cover url("${s.coverUrl}")` : gradient(s.title);
+  const bs = LS.get('best', {})[s.id];
+  const tile = el('button', { className: 'tile', title: `${s.title} by ${s.artist}` }, cover,
+    el('span', { className: 't', textContent: s.title }),
+    ...(showArtist ? [el('span', { className: 'a', textContent: s.artist })] : []),
+    ...(bs ? [el('span', { className: 'a', textContent: `Best ${bs.score.toLocaleString()} · ${bs.name}` })] : []));
+  tile.addEventListener('click', () => startSong(s));
+  return tile;
+}
+function artistTile(a) {
+  const covers = a.songs.filter(s => s.coverUrl).slice(0, 4);
+  const cover = el('span', { className: 'acover' + (covers.length === 1 ? ' one' : '') });
+  if (covers.length === 1) cover.style.backgroundImage = `url("${covers[0].coverUrl}")`;
+  else if (covers.length === 0) { cover.style.background = gradient(a.name); cover.append(el('span', { className: 'init', textContent: (a.name[0] || '♪').toUpperCase() })); }
+  else for (let i = 0; i < 4; i++) {                    // a little collage, like an album stack
+    const cell = el('i'), c = covers[i % covers.length];
+    cell.style.backgroundImage = `url("${c.coverUrl}")`; cover.append(cell);
+  }
+  const n = a.songs.length;
+  const tile = el('button', { className: 'atile', title: `${a.name}: ${n} song${n === 1 ? '' : 's'}` }, cover,
+    el('span', { className: 't', textContent: a.name }), el('span', { className: 'a', textContent: `${n} song${n === 1 ? '' : 's'}` }));
+  tile.addEventListener('click', () => openArtist(a.key));
+  return tile;
+}
+function openArtist(key) {
+  libView.artist = key; history.pushState({ lib: key }, '');
+  renderLibrary(); $('#lib').scrollTop = 0;
+}
+function closeArtist() {
+  if (history.state && history.state.lib) history.back();      // popstate does the rest
+  else { libView.artist = null; renderLibrary(); $('#lib').scrollTop = 0; }
+}
+addEventListener('popstate', e => { libView.artist = (e.state && e.state.lib) || null; renderLibrary(); });
+addEventListener('keydown', e => {
+  if (e.key === 'Escape' && libView.artist && $('#lib').classList.contains('active') && !document.querySelector('dialog[open]')) closeArtist();
+});
+
+function renderLibrary() {
+  const q = $('#search').value.trim().toLowerCase();
+  const has = library.songs.length > 0;
+  $('#empty').hidden = has; $('#libbody').hidden = !has; $('#search').hidden = !has;
+  const root = $('#songs'); root.replaceChildren();
+  if (!has) { libView.artist = null; return; }
+  const artists = groupArtists(library.songs);
+  if (libView.artist && !artists.some(a => a.key === libView.artist)) libView.artist = null;
+
+  if (q) {                                              // searching: one grid of every matching song
+    const hits = library.songs.filter(s => (s.title + ' ' + s.artist).toLowerCase().includes(q));
+    if (!hits.length) { root.append(el('p', { textContent: 'Nothing matches that search.', style: 'color:var(--muted)' })); return; }
+    const grid = el('div', { className: 'grid' }); hits.forEach(s => grid.append(songTile(s, true)));
+    root.append(el('h2', { className: 'sect', textContent: `${hits.length} result${hits.length === 1 ? '' : 's'}` }), grid);
+  } else if (libView.artist) {                          // one artist: all their songs
+    const a = artists.find(x => x.key === libView.artist);
+    const back = el('button', { className: 'btn', textContent: '← All artists' }); back.addEventListener('click', closeArtist);
+    root.append(el('div', { className: 'crumb' }, back, el('h2', { textContent: a.name }), el('small', { textContent: `${a.songs.length} song${a.songs.length === 1 ? '' : 's'}` })));
+    const grid = el('div', { className: 'grid', style: 'margin-top:18px' }); a.songs.forEach(s => grid.append(songTile(s, false)));
+    root.append(grid);
+  } else {                                              // the artist grid
+    const grid = el('div', { className: 'artistgrid' }); artists.forEach(a => grid.append(artistTile(a)));
+    root.append(el('div', { className: 'crumb' }, el('h2', { textContent: 'Artists' }), el('small', { textContent: `${artists.length} artist${artists.length === 1 ? '' : 's'}, ${library.songs.length} song${library.songs.length === 1 ? '' : 's'}` })), grid);
+  }
+}
+$('#search').addEventListener('input', renderLibrary);
+
+/* =====================================================================
+   Demo song (Twinkle Twinkle, public domain), audio is synthesised
+   ===================================================================== */
+let demoBlob = null, demoSongObj = null;
+function makeDemoChart() {
+  const beat = 0.6, lead = 4;
+  const P = [
+    [['Twin',60],['kle ',60],['twin',67],['kle ',67],['lit',69],['tle ',69],['star',67,2]],
+    [['How ',65],['I ',65],['won',64],['der ',64],['what ',62],['you ',62],['are',60,2]],
+    [['Up ',67],['a ',67],['bove ',65],['the ',65],['world ',64],['so ',64],['high',62,2]],
+    [['Like ',67],['a ',67],['dia',65],['mond ',65],['in ',64],['the ',64],['sky',62,2]],
+  ];
+  const order = [0, 1, 2, 3, 0, 1], lines = [];
+  order.forEach((pi, k) => {
+    const t0 = lead + k * 9 * beat; let b = 0;
+    const syllables = P[pi].map(([text, pitch, len = 1], i, arr) => {
+      const s = { text, pitch, start: +(t0 + b * beat).toFixed(3), end: +(t0 + (b + len) * beat - 0.05).toFixed(3) };
+      if (k >= 4 && i === arr.length - 1) s.type = 'golden';
+      b += len; return s;
+    });
+    lines.push({ syllables });
+  });
+  return { title: 'Twinkle Twinkle Little Star', artist: 'Demo', lines };
+}
+async function renderDemoAudio(chart) {
+  const sr = 22050, beat = 0.6, lead = 4, dur = lead + 54 * beat + 2.5;
+  const oc = new OfflineAudioContext(1, Math.ceil(sr * dur), sr);
+  const tone = (type, midi, t, len, vol) => {
+    const o = oc.createOscillator(), g = oc.createGain();
+    o.type = type; o.frequency.value = midiToFreq(midi);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(oc.destination); o.start(t); o.stop(t + len + 0.05);
+  };
+  for (const L of chart.lines) for (const s of L.syllables) tone('sine', s.pitch, s.start, s.end - s.start, 0.16);   // quiet guide melody
+  const C = 36, F = 41, G = 43;
+  const pat = { 0: [C,C,C,C,F,F,C,C], 1: [F,F,C,C,G,G,C,C], 2: [C,C,F,F,C,C,G,G], 3: [C,C,F,F,C,C,G,G] };
+  [0, 1, 2, 3, 0, 1].forEach((pi, k) => pat[pi].forEach((m, b) => tone('triangle', m, lead + (k * 9 + b) * beat, 0.5, 0.3)));
+  for (let b = 0; b < 4; b++) tone('triangle', C, (lead - 4 * beat) + b * beat, 0.2, 0.15); // count-in ticks
+  return toWav(await oc.startRendering());
+}
+function toWav(buf) {
+  const d = buf.getChannelData(0), n = d.length, sr = buf.sampleRate;
+  const ab = new ArrayBuffer(44 + n * 2), v = new DataView(ab);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) v.setInt16(44 + i * 2, clamp(d[i], -1, 1) * 32767, true);
+  return new Blob([ab], { type: 'audio/wav' });
+}
+function demoSong() {
+  if (!demoSongObj) {
+    const json = makeDemoChart();
+    demoSongObj = { id: 'demo', demo: true, title: json.title, artist: json.artist, chart: normalizeChart(json), coverUrl: null,
+      audioUrl: async () => { if (!demoBlob) demoBlob = await renderDemoAudio(json); return URL.createObjectURL(demoBlob); } };
+  }
+  return demoSongObj;
+}
+async function playDemo() {
+  const s = demoSong();
+  if (!library.songs.includes(s)) { library.songs.push(s); library.songs.sort((a, b) => a.artist.localeCompare(b.artist) || a.title.localeCompare(b.title)); renderLibrary(); }
+  startSong(s);
+}
+
+/* =====================================================================
+   Game
+   ===================================================================== */
+const cv = $('#stage'), ctx2 = cv.getContext('2d');
+let W = 0, H = 0, dpr = 1;
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr; ctx2.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+addEventListener('resize', resize); resize();
+
+const G = { state: 'idle', song: null, chart: null, t: 0, lastA: -1, lastStamp: 0, lastFrame: 0, ni: 0, li: 0,
+  active: null, lastRef: null, raf: 0, token: null, audioUrl: null, bass: 0, videoOn: false, busy: false,
+  freq: new Uint8Array(128), wake: null, videoUrl: null, pl: [], passedDone: 0, passed: 0, devs: [[], []] };
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+}
+
+function buildScores() {
+  const box = $('#scores'); box.replaceChildren();
+  G.pl.forEach(p => {
+    const pts = el('span', { className: 'pts', id: 'score' + p.i, textContent: '0' });
+    const live = el('span', { className: 'live', id: 'live' + p.i }), streak = el('span', { className: 'streak', id: 'streak' + p.i });
+    const d = el('div', { className: 'score' }, el('span', { className: 'pname', textContent: p.name }), pts, live, streak);
+    d.style.setProperty('--c', p.color); box.append(d);
+  });
+}
+
+async function setupBackground(song) {
+  const v = $('#bgvideo');
+  G.videoOn = false; G.songVideo = false; v.classList.remove('on'); v.pause();
+  if (G.videoUrl) { URL.revokeObjectURL(G.videoUrl); G.videoUrl = null; }
+  try {
+    if (song.videoUrl) { G.videoUrl = await song.videoUrl(); G.songVideo = !!G.videoUrl; if (!G.videoUrl) return; }
+    else if (library.videos.length) {
+      const pick = library.videos[Math.floor(Math.random() * library.videos.length)];
+      G.videoUrl = URL.createObjectURL(await pick());
+    } else return;
+    v.src = G.videoUrl; v.loop = !G.songVideo; v.currentTime = 0;
+    await v.play();
+    if (G.songVideo) v.pause();                         // the song's own video waits for the music
+    v.classList.add('on'); G.videoOn = true;
+  } catch { G.videoOn = false; G.songVideo = false; }
+}
+function syncVideo() {
+  const v = $('#bgvideo');
+  if (!G.songVideo || !G.videoOn) return;
+  try { v.currentTime = Math.max(0, audio.currentTime + (G.song.videoGap || 0)); v.play().catch(() => {}); } catch {}
+}
+
+function loaded(a) {
+  return new Promise((res, rej) => {
+    const ok = () => { a.removeEventListener('error', bad); res(); };
+    const bad = () => { a.removeEventListener('canplay', ok); rej(new Error('This audio file could not be played.')); };
+    a.addEventListener('canplay', ok, { once: true }); a.addEventListener('error', bad, { once: true });
+  });
+}
+
+async function startSong(song) {
+  if (G.busy) return;
+  G.busy = true;
+  try {
+    if (song.meta && song.meta.audioName && !(await ensureFolderAccess())) return;
+    if (song.meta && song.meta.drive) { try { await driveToken(); } catch (e) { toast(e.message, 9000); return; } }
+    getAC();
+    G.pl = activePlayers();
+    if (G.pl.length === 2 && settings.mics[0] === settings.mics[1] && settings.chans[0] === settings.chans[1]) {
+      toast('Both players are set to the same microphone. Open Mic & timing and pick two different mics, or the left and right channels of one.', 9000); return;
+    }
+    for (const p of G.pl) {
+      if (!p.stream) { try { await p.openMic(settings.mics[p.i], settings.chans[p.i]); } catch (e) { toast(micError(e)); return; } }
+    }
+    players.filter(p => !G.pl.includes(p)).forEach(p => p.closeMic());
+    try { await document.fonts.load('800 40px "Bricolage Grotesque"'); } catch {}
+
+    const token = G.token = Symbol();
+    audio.pause();
+    if (G.audioUrl) URL.revokeObjectURL(G.audioUrl);
+    try {
+      if (song.meta && song.meta.drive) toast('Getting the song from Google Drive…', 90000);
+      G.audioUrl = await song.audioUrl();
+      audio.src = G.audioUrl; audio.load(); await loaded(audio);
+      if (song.meta && song.meta.drive) $('#toast').classList.remove('show');
+    } catch (e) { toast(e.message); return; }
+
+    Object.assign(G, { song, chart: song.chart, t: 0, lastA: -1, ni: 0, li: 0, active: null, lastRef: null, passedDone: 0, passed: 0, devs: [[], []], state: 'countdown' });
+    for (const n of song.chart.notes) { n.hits = []; n.done = false; }
+    applySync(song);
+    G.pl.forEach(p => p.reset());
+    fxReset();
+    buildScores();
+    $('#hudTitle').textContent = song.title; $('#hudArtist').textContent = song.artist;
+    $('#pauseOv').classList.remove('show'); $('#resultOv').classList.remove('show');
+    await setupBackground(song);
+    showScreen('game'); resize();
+    try { G.wake = await navigator.wakeLock?.request('screen'); } catch {}
+    G.lastFrame = performance.now() / 1000;
+    cancelAnimationFrame(G.raf); G.raf = requestAnimationFrame(frame);
+
+    if (settings.autoSync && !hasSync(song.id)) { await runAutoSync(song, token); if (G.token !== token) return; }
+
+    const c = $('#count'); c.classList.add('show');
+    for (const n of ['3', '2', '1']) {
+      c.firstElementChild.textContent = n; c.replaceChild(c.firstElementChild.cloneNode(true), c.firstElementChild);
+      await sleep(900); if (G.token !== token) return;
+    }
+    c.classList.remove('show');
+    audio.currentTime = 0; await audio.play();
+    G.lastA = -1; G.state = 'playing'; syncVideo();
+  } finally { G.busy = false; }
+}
+
+function stopGame() {
+  G.token = null; G.state = 'idle';
+  cancelAnimationFrame(G.raf);
+  audio.pause();
+  $('#count').classList.remove('show'); $('#pauseOv').classList.remove('show'); $('#resultOv').classList.remove('show'); $('#syncOv').classList.remove('show');
+  $('#bgvideo').pause();
+  try { G.wake?.release(); } catch {}
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+function quit() {
+  stopGame();
+  if (G.tour) { G.tour = null; restoreAfterTour(); showScreen('tour'); renderTour(); }     // leave the match, nothing is recorded
+  else { showScreen('lib'); renderLibrary(); }
+}
+
+function pause() {
+  if (G.state !== 'playing') return;
+  G.state = 'paused'; audio.pause(); $('#bgvideo').pause(); $('#pauseOv').classList.add('show');
+}
+function resume() {
+  if (G.state !== 'paused') return;
+  $('#pauseOv').classList.remove('show'); G.lastA = -1; G.lastFrame = performance.now() / 1000;
+  audio.play(); G.state = 'playing';
+  if (G.songVideo) syncVideo(); else if (G.videoOn) $('#bgvideo').play().catch(() => {});
+}
+function finish() {
+  if (G.state !== 'playing') return;
+  G.state = 'done'; audio.pause(); $('#bgvideo').pause();
+  const pl = G.pl, pt = settings.rlang === 'pt', board = $('#rBoard'); board.replaceChildren();
+  pl.forEach(p => {
+    const card = el('div', { className: 'rcard' }, el('div', { className: 'rname', textContent: p.name }),
+      el('div', { className: 'rscore', textContent: p.score.toLocaleString() }),
+      el('div', { className: 'rtitle', textContent: ratingFor(p.score, settings.rlang) }),
+      el('div', { className: 'rname', textContent: p.bestStreak >= 3 ? `${pt ? 'Melhor série' : 'Best streak'} ${p.bestStreak}` : '' }));
+    card.style.setProperty('--c', p.color); board.append(card);
+  });
+  const top = pl.reduce((a, p) => p.score > a.score ? p : a, pl[0]);
+  if (pl.length === 1) $('#rWinner').textContent = '';
+  else $('#rWinner').textContent = pl[0].score === pl[1].score ? (pt ? 'Empate!' : 'It’s a tie!') : `${top.name} ${pt ? 'ganhou!' : 'wins!'}`;
+  const best = LS.get('best', {}), prev = best[G.song.id];
+  $('#rBest').textContent = '';
+  if (!prev || top.score > prev.score) {
+    best[G.song.id] = { score: top.score, name: top.name }; LS.set('best', best);
+    if (prev) $('#rBest').textContent = pt ? 'Novo recorde nesta música!' : 'New best for this song!';
+  }
+  $('#rSong').textContent = `${G.song.title}, ${G.song.artist}`;
+  $('#btnAgain').hidden = !!G.tour; $('#btnBack').textContent = G.tour ? 'Continue' : 'Back to songs';
+  if (G.tour && T && T.type === 'champ' && pl[0].score === pl[1].score) $('#rBest').textContent = pt ? 'Empate! Vão cantar outra música.' : 'Tie! You will sing another song.';
+  $('#resultOv').classList.add('show');
+}
+audio.addEventListener('ended', finish);
+
+$('#btnPause').addEventListener('click', pause);
+$('#btnResume').addEventListener('click', resume);
+$('#btnRestart').addEventListener('click', () => { const s = G.song; stopGame(); startSong(s); });
+$('#btnQuit').addEventListener('click', quit);
+$('#btnAgain').addEventListener('click', () => { const s = G.song; stopGame(); startSong(s); });
+$('#btnBack').addEventListener('click', () => { if (G.tour) tourContinue(); else quit(); });
+$('#btnFull').addEventListener('click', () => {
+  if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.();
+});
+
+
+
+/* ---------- Pitch: the chart can be in a different key from the recording ---------- */
+const median = xs => { const a = [...xs].sort((x, y) => x - y), n = a.length; return n % 2 ? a[n >> 1] : (a[n / 2 - 1] + a[n / 2]) / 2; };
+function adjustPitch(dp) {
+  if (!G.song || !G.chart) return;
+  const sy = getSync(G.song.id); delete sy.auto; delete sy.conf;
+  sy.p = clamp(Math.round(((sy.p || 0) + dp) * 4) / 4, -8, 8);
+  setSync(G.song.id, sy); applySync(G.song); G.devs = [[], []];
+  toast(syncSummary(G.song), 1800);
+}
+function calibratePitch() {
+  const all = G.devs.flat();
+  if (all.length < 90) { toast('Sing along for a few seconds first, then pause and try again.', 5000); return; }
+  const d = Math.round(median(all) * 4) / 4;
+  if (Math.abs(d) < 0.25) { toast('Your singing already lines up with the notes.', 4000); return; }
+  const sy = getSync(G.song.id); delete sy.auto; delete sy.conf;
+  sy.p = clamp((sy.p || 0) + d, -8, 8);
+  setSync(G.song.id, sy); applySync(G.song); G.devs = [[], []];
+  toast(`Notes moved ${d > 0 ? 'up' : 'down'} ${Math.abs(d)} semitone${Math.abs(d) === 1 ? '' : 's'} to match your singing.`, 4000);
+}
+$('#btnPitchFix').addEventListener('click', calibratePitch);
+
+/* ---------- Automatic sync: listen to the audio, compare its melody with the chart ---------- */
+let autoCancel = false;
+async function extractChroma(abuf, onProgress) {
+  const sr = 11025, len = Math.max(1, Math.ceil(abuf.duration * sr));
+  const oc = new OfflineAudioContext(1, len, sr);                  // resamples to mono 11 kHz
+  const src = oc.createBufferSource(); src.buffer = abuf;
+  const filt = (type, f) => { const b = oc.createBiquadFilter(); b.type = type; b.frequency.value = f; return b; };
+  const chain = [filt('highpass', 140), filt('highpass', 140), filt('lowpass', 1600)];   // keep roughly the vocal range, drop bass and hiss
+  src.connect(chain[0]); chain[0].connect(chain[1]); chain[1].connect(chain[2]); chain[2].connect(oc.destination); src.start();
+  onProgress && onProgress(0.3);
+  const out = (await oc.startRendering()).getChannelData(0);
+  if (autoCancel) throw new Error('cancelled');
+  onProgress && onProgress(0.7);
+  await new Promise(res => setTimeout(res));
+  const r = chromaFrames(out, sr);
+  onProgress && onProgress(1);
+  return r;
+}
+async function autoSyncSong(song, url, onProgress) {
+  const buf = await (await fetch(url)).arrayBuffer();
+  const abuf = await getAC().decodeAudioData(buf);
+  const { chroma, hop } = await extractChroma(abuf, onProgress);
+  await new Promise(res => setTimeout(res));
+  return alignChart(song.chart.notes, chroma, hop);
+}
+async function runAutoSync(song, token) {
+  const ov = $('#autoOv'), bar = $('#autoBar'), msg = $('#autoMsg');
+  autoCancel = false; msg.textContent = 'Listening to the audio…'; bar.style.width = '0%'; ov.classList.add('show');
+  let res = null;
+  try {
+    res = await autoSyncSong(song, G.audioUrl, p => { msg.textContent = 'Matching the lyrics to this recording…'; bar.style.width = Math.round(p * 100) + '%'; });
+  } catch (e) { if (!(e && e.message === 'cancelled')) console.warn('Automatic sync failed:', e); }
+  ov.classList.remove('show');
+  if (G.token !== token || autoCancel) return;                    // cancelled: ask again next time
+  const sy = { a: 1, b: 0 };
+  if (res && res.conf !== 'low') {
+    Object.assign(sy, { a: res.a, b: res.b, p: res.p || 0, auto: true, conf: res.conf });
+    toast(`Lyrics matched to this audio (${res.conf} confidence${Math.abs(res.a - 1) > 0.0005 ? ', speed ' + (res.a * 100).toFixed(1) + '%' : ''}${res.p ? ', notes ' + (res.p > 0 ? '+' : '') + res.p + ' semitones' : ''}). Not right? Pause and use Fix sync.`, 6500);
+  } else toast('Could not confirm the timing automatically. If the lyrics are off, pause and use Fix sync.', 7000);
+  setSync(song.id, sy); applySync(song);
+}
+$('#btnAutoSkip').addEventListener('click', () => { autoCancel = true; });
+$('#btnAutoSync').addEventListener('click', () => {
+  const all = LS.get('sync', {}); delete all[G.song.id]; LS.set('sync', all);
+  const song = G.song; stopGame(); startSong(song);
+});
+
+/* ---------- Per-song sync: chart time t -> audio time a*t + b (saved in the browser) ---------- */
+const TAP_LAG = 0.15;                                   // people tap a little after they hear something
+const getSync = id => ({ a: 1, b: 0, ...((LS.get('sync', {}))[id] || {}) });
+function setSync(id, sy) { const all = LS.get('sync', {}); all[id] = { a: sy.a, b: sy.b, ...(sy.p ? { p: sy.p } : {}), ...(sy.auto ? { auto: true, conf: sy.conf } : {}) }; LS.set('sync', all); }
+const hasSync = id => !!LS.get('sync', {})[id];
+function applySync(song) {
+  const ch = song.chart, sy = getSync(song.id), shift = sy.p || 0;
+  for (const n of ch.notes) {
+    if (!n.t0) n.t0 = [n.start, n.end];
+    if (n.p0 === undefined) n.p0 = n.pitch;
+    n.start = sy.a * n.t0[0] + sy.b; n.end = sy.a * n.t0[1] + sy.b;
+    if (n.p0 !== null) n.pitch = n.p0 + shift;                 // key shift between the chart and this recording
+  }
+  for (const l of ch.lines) { if (!l.t0) l.t0 = [l.start, l.end]; l.start = sy.a * l.t0[0] + sy.b; l.end = sy.a * l.t0[1] + sy.b; }
+  ch.end = Math.max(...ch.notes.map(n => n.end));
+  let lo = Infinity, hi = -Infinity;
+  for (const n of ch.notes) if (n.pitch !== null) { lo = Math.min(lo, n.pitch); hi = Math.max(hi, n.pitch); }
+  if (isFinite(lo)) { ch.minP = lo; ch.maxP = hi; }
+  G.ni = 0; G.li = 0; G.passedDone = 0;
+}
+function syncSummary(song) {
+  const sy = getSync(song.id), tf = song.chart.notes[0].t0[0];
+  const shift = sy.a * tf + sy.b - tf;
+  const p = sy.p || 0;
+  return `Lyrics timing: ${shift >= 0 ? '+' : ''}${shift.toFixed(2)} s at the start, speed ${(sy.a * 100).toFixed(1)}%${p ? `, notes ${p > 0 ? '+' : ''}${p} semitone${Math.abs(p) === 1 ? '' : 's'}` : ''}`;
+}
+function adjustSync(db, factor) {
+  if (!G.song || !G.chart) return;
+  const sy = getSync(G.song.id), tf = G.chart.notes[0].t0[0];
+  delete sy.auto; delete sy.conf;
+  if (db) sy.b += db;
+  if (factor) { const a2 = clamp(sy.a * factor, 0.8, 1.25); sy.b = (sy.a * tf + sy.b) - a2 * tf; sy.a = a2; }   // keep the first word fixed
+  setSync(G.song.id, sy); applySync(G.song);
+  toast(syncSummary(G.song), 1800);
+}
+function startSync() {
+  if (G.state !== 'paused') return;
+  const l0 = G.chart.lines[0];
+  $('#syncLine').textContent = l0.syl.map(s => s.text.replace(/~/g, '')).join('');
+  $('#pauseOv').classList.remove('show'); $('#syncOv').classList.add('show');
+  G.state = 'sync'; G.t = 0;                            // chart stays frozen while you listen
+  audio.currentTime = 0; audio.play();
+  if (G.songVideo) syncVideo();
+}
+function tapSync() {
+  if (G.state !== 'sync') return;
+  const t0 = G.chart.notes[0].t0[0], sy = getSync(G.song.id);
+  sy.b = (audio.currentTime - TAP_LAG) - sy.a * t0; delete sy.auto; delete sy.conf;
+  setSync(G.song.id, sy);
+  const song = G.song; $('#syncOv').classList.remove('show');
+  stopGame(); startSong(song).then(() => toast(syncSummary(song), 3000));
+}
+function endSync(toPause) {
+  $('#syncOv').classList.remove('show'); audio.pause(); $('#bgvideo').pause();
+  if (toPause) { G.state = 'paused'; $('#pauseOv').classList.add('show'); }
+}
+$('#btnSync').addEventListener('click', startSync);
+$('#btnTap').addEventListener('click', tapSync);
+$('#btnSyncCancel').addEventListener('click', () => endSync(true));
+$('#btnSyncReset').addEventListener('click', () => { setSync(G.song.id, { a: 1, b: 0 }); const song = G.song; $('#syncOv').classList.remove('show'); stopGame(); startSong(song); });
+
+addEventListener('keydown', e => {
+  if (!$('#game').classList.contains('active')) return;
+  if (G.state === 'sync') {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapSync(); }
+    else if (e.key === 'Escape') { e.preventDefault(); endSync(true); }
+    return;
+  }
+  if (e.key === 'Escape' || e.key === ' ') {
+    if (G.state === 'playing') { pause(); e.preventDefault(); }
+    else if (G.state === 'paused' && e.key === ' ') { resume(); e.preventDefault(); }
+  }
+  if (G.state === 'playing' || G.state === 'paused') {
+    const k = e.shiftKey ? 10 : 1;
+    if (e.key === 'ArrowRight') { adjustSync(0.05 * k, 0); e.preventDefault(); }
+    else if (e.key === 'ArrowLeft') { adjustSync(-0.05 * k, 0); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { adjustPitch(e.shiftKey ? 0.25 : 1); e.preventDefault(); }
+    else if (e.key === 'ArrowDown') { adjustPitch(e.shiftKey ? -0.25 : -1); e.preventDefault(); }
+    else if (e.key === ']') adjustSync(0, 1.001);
+    else if (e.key === '[') adjustSync(0, 1 / 1.001);
+  }
+});
+
+addEventListener('beforeunload', e => {
+  if (['countdown', 'playing', 'paused'].includes(G.state)) { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* ---------- Frame loop ---------- */
+function frame() {
+  if (G.state === 'idle') return;
+  G.raf = requestAnimationFrame(frame);
+  const now = performance.now() / 1000;
+  const dt = Math.min(now - G.lastFrame, 0.05); G.lastFrame = now;
+
+  if (G.state === 'playing') {
+    const a = audio.currentTime;
+    if (a !== G.lastA) { G.lastA = a; G.lastStamp = now; }
+    G.t = Math.max(G.t, a + Math.min(now - G.lastStamp, 0.08));
+    if (G.t > G.chart.end + 4) { finish(); return; }
+    if (G.songVideo && G.videoOn && now - (G.lastVSync || 0) > 4) {
+      G.lastVSync = now; const vv = $('#bgvideo'), target = audio.currentTime + (G.song.videoGap || 0);
+      if (Math.abs(vv.currentTime - target) > 0.35) vv.currentTime = Math.max(0, target);
+    }
+  }
+  G.pl.forEach(p => p.sample());
+  if (G.state === 'playing') score(dt);
+
+  if (songAnalyser) {
+    songAnalyser.getByteFrequencyData(G.freq);
+    let b = 0; for (let i = 1; i < 6; i++) b += G.freq[i];
+    G.bass += ((audio.paused ? 0 : b / 5 / 255) - G.bass) * 0.25;
+  }
+  draw(now);
+}
+
+function score(dt) {
+  const tt = G.t - settings.latency / 1000;         // when the singer actually sang what we're hearing now
+  const ns = G.chart.notes, wt = n => (n.end - n.start) * (n.type === 'golden' ? 2 : 1);
+  while (G.ni < ns.length && ns[G.ni].end < tt) { G.passedDone += wt(ns[G.ni]); evaluateNote(ns[G.ni]); G.ni++; }
+  const n = ns[G.ni];
+  G.active = (n && n.start <= tt) ? n : null;
+  if (G.active && G.active.pitch !== null) G.lastRef = G.active.pitch;
+  G.passed = G.passedDone + (G.active ? (tt - G.active.start) * (G.active.type === 'golden' ? 2 : 1) : 0);
+  for (const p of G.pl) {
+    // With two mics in one room each mic also hears the other singer, only fainter. When both are
+    // detected, a mic that is clearly quieter than the other one is just picking up the neighbour.
+    const other = G.pl.find(q => q !== p);
+    p.counts = p.voiced && !(other && other.voiced && p.smooth < other.smooth * 0.55);
+    p.hitNow = false;
+    if (G.active && p.counts) {
+      if (G.active.pitch !== null) { const arr = G.devs[p.i], dv = wrap12(p.midi - G.active.pitch); arr.push(dv); if (arr.length > 360) arr.shift(); }
+      let ok = true;
+      if (G.active.pitch !== null) ok = Math.abs(wrap12(p.midi - G.active.pitch)) <= settings.tol;
+      if (ok) {
+        p.hitNow = true;
+        p.gained += dt * (G.active.type === 'golden' ? 2 : 1);
+        const h = (G.active.hits[p.i] = G.active.hits[p.i] || []), last = h[h.length - 1];
+        if (last && tt - last[1] < 0.12) last[1] = tt; else h.push([tt - dt, tt]);
+      }
+    }
+    // Hitting ~90% of the note time counts as a perfect run.
+    const s = Math.min(10000, Math.round(p.gained / (G.chart.total * 0.9) * 10000));
+    if (s !== p.score) { p.score = s; $('#score' + p.i).textContent = s.toLocaleString(); }
+    const live = G.passed > 4 ? ratingFor(clamp(p.gained / (G.passed * 0.9), 0, 1) * 10000, settings.rlang) : '';
+    if (live !== p.live) { p.live = live; $('#live' + p.i).textContent = live; }
+  }
+}
+
+/* ---------- Celebrations: purely visual, they never touch the score ---------- */
+const fx = { parts: [], rings: [], pops: [], flashes: [], queue: [], last: 0 };
+const FXT = {
+  en: { golden: 'Golden!', words: { 3: 'Nice!', 6: 'Great!', 10: 'On fire!', 15: 'Amazing!', 20: 'Unstoppable!' }, streak: 'Streak' },
+  pt: { golden: 'Dourada!', words: { 3: 'Boa!', 6: 'Muito bem!', 10: 'Em chamas!', 15: 'Incrível!', 20: 'Imparável!' }, streak: 'Série' }
+};
+const MILESTONES = [3, 6, 10, 15, 20, 30, 40, 50, 75, 100];
+const fxLang = () => FXT[settings.rlang === 'pt' ? 'pt' : 'en'];
+function fxReset() { fx.parts.length = 0; fx.rings.length = 0; fx.pops.length = 0; fx.flashes.length = 0; fx.queue.length = 0; }
+function fxWord(streak) { const w = fxLang().words; let out = w[3]; for (const k of [3, 6, 10, 15, 20]) if (streak >= k) out = w[k]; return out; }
+function fxPart(x, y, vx, vy, life, size, color, kind, g) {
+  if (fx.parts.length < 500) fx.parts.push({ x, y, vx, vy, g, life, max: life, size, color, kind, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 8 });
+}
+function fxBurst(x, y, n, colors, speed, size, life) {
+  if (reduceMotion) return;
+  for (let i = 0; i < n; i++) {
+    const ang = Math.random() * Math.PI * 2, sp = speed * (0.35 + Math.random() * 0.65);
+    fxPart(x, y, Math.cos(ang) * sp, Math.sin(ang) * sp - speed * 0.25, life * (0.6 + Math.random() * 0.6), size * (0.6 + Math.random() * 0.8),
+      colors[(Math.random() * colors.length) | 0], Math.random() < 0.35 ? 'dot' : 'star', 420);
+  }
+}
+function fxRing(x, y, rgb, rmax) { if (!reduceMotion) fx.rings.push({ x, y, rgb, rmax, life: 0.55, max: 0.55 }); }
+function fxPop(x, y, text, color, size) { fx.pops.push({ x, y, text, color, size, life: 1.15, max: 1.15 }); }
+function updateStreakChip(p) {
+  const e = $('#streak' + p.i); if (!e) return;
+  const txt = p.streak >= 3 ? `${fxLang().streak} ${p.streak}` : '';
+  if (e.textContent === txt) return;
+  e.textContent = txt; e.classList.toggle('hot', p.streak >= 10);
+  if (txt) { e.classList.remove('pulse'); void e.offsetWidth; e.classList.add('pulse'); }
+}
+// Called once for each note after it has gone past: did each singer sing through it?
+function evaluateNote(n) {
+  if (n.done) return;
+  n.done = true;
+  if (n.pitch === null || n.end - n.start < 0.12) return;          // freestyle and very short notes don't count either way
+  const dur = n.end - n.start;
+  for (const p of G.pl) {
+    let t = 0; for (const [a, b] of (n.hits[p.i] || [])) t += b - a;
+    const ratio = t / dur;
+    if (ratio >= 0.8) {
+      p.streak++; p.bestStreak = Math.max(p.bestStreak, p.streak);
+      if (settings.fx && MILESTONES.includes(p.streak)) fx.queue.push({ k: 'streak', p, n, streak: p.streak });
+    } else if (ratio < 0.5) p.streak = 0;                           // a clear miss ends the streak; in between keeps it alive
+    if (settings.fx && n.type === 'golden' && ratio >= 0.88) fx.queue.push({ k: 'golden', p, n });
+    updateStreakChip(p);
+  }
+}
+function fxProcess(geo, x) {
+  if (!fx.queue.length) return;
+  for (const e of fx.queue.splice(0)) {
+    const idx = G.pl.indexOf(e.p); if (idx < 0) continue;
+    const g = geo[idx], y = e.n && e.n.pitch !== null ? clamp(g.yOf(e.n.pitch), g.top - 4, g.top + g.h + 4) : g.top + g.h / 2;
+    if (e.k === 'golden') {
+      fxBurst(x, y, 46, ['#ffd35c', '#fff4c2', '#ffb347', '#ffffff'], 340, 9, 1.1);
+      fxRing(x, y, '255,211,92', 95);
+      fx.flashes.push({ idx, rgb: '255,200,61', life: 0.45, max: 0.45 });
+      fxPop(x + 46, y - 36, fxLang().golden, '#ffd35c', 32);
+    } else {
+      const s = e.streak;
+      fxBurst(x, y, 18 + Math.min(s, 30), [e.p.color, '#ffffff', '#ffd35c'], 260 + Math.min(s, 40) * 4, 7, 0.95);
+      fxRing(x, y, e.p.rgb, 70 + Math.min(s, 30) * 2);
+      fxPop(x + 46, y - 36, `${fxWord(s)} ×${s}`, e.p.color, 26 + Math.min(10, s / 2));
+      if (s >= 10) fx.flashes.push({ idx, rgb: e.p.rgb, life: 0.35, max: 0.35 });
+    }
+  }
+}
+function fxLane(c, p, idx, top, h, now) {                          // flash after a big moment, and a pulsing outline while on a roll
+  if (!settings.fx) return;
+  for (const f of fx.flashes) if (f.idx === idx) { c.fillStyle = `rgba(${f.rgb},${0.22 * Math.max(0, f.life / f.max)})`; rr(c, 12, top - 12, W - 24, h + 24, 22); c.fill(); }
+  if (p.streak >= 6) { c.lineWidth = 3; c.strokeStyle = `rgba(${p.rgb},${0.28 + (reduceMotion ? 0 : 0.18 * Math.sin(now * 6))})`; rr(c, 12, top - 12, W - 24, h + 24, 22); c.stroke(); }
+}
+function fxAura(c, p, x, y, rad, now) {                            // glow around the singer's dot that grows with the streak, plus sparkles and flames
+  if (!settings.fx) return;
+  const s = p.streak;
+  if (s >= 3) {
+    const R = rad + 12 + Math.min(s, 20) * 1.4 + (reduceMotion ? 0 : Math.sin(now * 9) * 3);
+    const g = c.createRadialGradient(x, y, rad * 0.5, x, y, R);
+    g.addColorStop(0, `rgba(${p.rgb},.6)`); g.addColorStop(1, `rgba(${p.rgb},0)`);
+    c.fillStyle = g; c.beginPath(); c.arc(x, y, R, 0, 7); c.fill();
+  }
+  if (s < 3 || reduceMotion || G.state !== 'playing') return;
+  if (p.hitNow && Math.random() < 0.4) fxPart(x, y, (Math.random() - 0.5) * 140, (Math.random() - 0.9) * 150, 0.6, 5 + Math.random() * 4, Math.random() < 0.5 ? '#ffffff' : p.color, 'star', 120);
+  if (s >= 10 && Math.random() < 0.85) fxPart(x + (Math.random() - 0.5) * 10, y + 2, (Math.random() - 0.5) * 60, -70 - Math.random() * 90, 0.5 + Math.random() * 0.3,
+    6 + Math.random() * 6, ['#ff8a2a', '#ffb347', '#ffd35c', p.color][(Math.random() * 4) | 0], 'dot', -120);
+}
+function fxDraw(c, now) {
+  const dt = G.state === 'playing' ? Math.min(0.05, Math.max(0, now - (fx.last || now))) : 0;
+  fx.last = now;
+  for (let i = fx.flashes.length - 1; i >= 0; i--) { fx.flashes[i].life -= dt; if (fx.flashes[i].life <= 0) fx.flashes.splice(i, 1); }
+  c.save(); c.globalCompositeOperation = 'lighter';
+  for (let i = fx.parts.length - 1; i >= 0; i--) {
+    const q = fx.parts[i]; q.life -= dt;
+    if (q.life <= 0) { fx.parts.splice(i, 1); continue; }
+    q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.vr * dt;
+    c.globalAlpha = Math.min(1, (q.life / q.max) * 1.4); c.fillStyle = q.color;
+    if (q.kind === 'star') {
+      const z = q.size; c.save(); c.translate(q.x, q.y); c.rotate(q.rot); c.beginPath();
+      c.moveTo(0, -z); c.lineTo(z * 0.28, 0); c.lineTo(0, z); c.lineTo(-z * 0.28, 0); c.closePath();
+      c.moveTo(-z, 0); c.lineTo(0, z * 0.28); c.lineTo(z, 0); c.lineTo(0, -z * 0.28); c.closePath(); c.fill(); c.restore();
+    } else { c.beginPath(); c.arc(q.x, q.y, q.size * 0.5, 0, 7); c.fill(); }
+  }
+  for (let i = fx.rings.length - 1; i >= 0; i--) {
+    const r = fx.rings[i]; r.life -= dt;
+    if (r.life <= 0) { fx.rings.splice(i, 1); continue; }
+    const t = 1 - r.life / r.max, rad = 8 + (r.rmax - 8) * (1 - (1 - t) * (1 - t));
+    c.globalAlpha = r.life / r.max; c.lineWidth = 1 + 4 * (r.life / r.max); c.strokeStyle = `rgb(${r.rgb})`;
+    c.beginPath(); c.arc(r.x, r.y, rad, 0, 7); c.stroke();
+  }
+  c.restore();
+  c.save(); c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.lineJoin = 'round';
+  for (let i = fx.pops.length - 1; i >= 0; i--) {
+    const q = fx.pops[i]; q.life -= dt;
+    if (q.life <= 0) { fx.pops.splice(i, 1); continue; }
+    const t = 1 - q.life / q.max, rise = reduceMotion ? 0 : 46 * (1 - (1 - t) * (1 - t)), sc = reduceMotion ? 1 : 1 + 0.3 * Math.max(0, 1 - t * 6);
+    c.globalAlpha = Math.min(1, q.life / q.max / 0.3); c.font = `800 ${q.size * sc}px ${FONT}`;
+    c.lineWidth = q.size * 0.2; c.strokeStyle = 'rgba(18,8,40,.9)'; c.strokeText(q.text, q.x, q.y - rise);
+    c.fillStyle = q.color; c.fillText(q.text, q.x, q.y - rise);
+  }
+  c.restore();
+}
+
+/* ---------- Drawing ---------- */
+function rr(c, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2); c.beginPath();
+  c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+}
+const FONT = '"Bricolage Grotesque", system-ui, sans-serif';
+
+function drawBackground(now) {
+  const c = ctx2;
+  if (G.videoOn) { c.clearRect(0, 0, W, H); c.fillStyle = 'rgba(18,10,38,.58)'; c.fillRect(0, 0, W, H); return; }
+  c.fillStyle = '#170f2e'; c.fillRect(0, 0, W, H);
+  const sp = reduceMotion ? 0.04 : 0.15, bass = G.bass;
+  [['255,90,138', .25, .3, 0, .3], ['47,217,230', .75, .35, 2, .26], ['120,70,230', .5, .85, 4, .34], ['255,200,61', .12, .9, 1, .14]]
+    .forEach(([col, bx, by, ph, al]) => {
+      const x = (bx + Math.sin(now * sp + ph) * .12) * W, y = (by + Math.cos(now * sp * .8 + ph) * .1) * H;
+      const r = Math.max(W, H) * (.38 + bass * .12);
+      const g = c.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, `rgba(${col},${al + bass * .22})`); g.addColorStop(1, `rgba(${col},0)`);
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+    });
+}
+
+function draw(now) {
+  const c = ctx2, ch = G.chart;
+  drawBackground(now);
+  if (!ch) return;
+
+  const nowX = W * 0.2, pps = W / 7.5, lat = settings.latency / 1000;
+  const span = Math.max(9, ch.maxP - ch.minP + 2), mid = (ch.maxP + ch.minP) / 2;
+  const duo = G.pl.length > 1;
+  const lanes = duo ? [{ top: H * 0.2, h: H * 0.19 }, { top: H * 0.46, h: H * 0.19 }] : [{ top: H * 0.24, h: H * 0.42 }];
+
+  const geo = lanes.map(l => { const rowH = l.h / span; return { top: l.top, h: l.h, yOf: pt => l.top + l.h / 2 - (pt - mid) * rowH }; });
+  fxProcess(geo, nowX - lat * pps);
+
+  G.pl.forEach((p, idx) => {
+    const laneTop = lanes[idx].top, laneH = lanes[idx].h, rowH = laneH / span;
+    const yOf = pt => laneTop + laneH / 2 - (pt - mid) * rowH;
+    const noteH = clamp(rowH * 0.85, duo ? 9 : 14, duo ? 22 : 30);
+
+    // lane and now line
+    c.fillStyle = 'rgba(14,7,34,.38)'; rr(c, 12, laneTop - 12, W - 24, laneH + 24, 22); c.fill();
+    if (duo) { c.lineWidth = 2; c.strokeStyle = `rgba(${p.rgb},.55)`; c.stroke(); }
+    fxLane(c, p, idx, laneTop, laneH, now);
+    const lg = c.createLinearGradient(0, laneTop, 0, laneTop + laneH);
+    lg.addColorStop(0, 'rgba(255,200,61,0)'); lg.addColorStop(.5, 'rgba(255,200,61,.95)'); lg.addColorStop(1, 'rgba(255,200,61,0)');
+    c.fillStyle = lg; c.fillRect(nowX - 1.5, laneTop - 12, 3, laneH + 24);
+    if (duo) { c.font = `700 15px ${FONT}`; c.textAlign = 'left'; c.fillStyle = p.color; c.fillText(p.name, 28, laneTop + 6); }
+
+    // notes
+    c.save(); rr(c, 12, laneTop - 12, W - 24, laneH + 24, 22); c.clip();
+    for (const n of ch.notes) {
+      const x1 = nowX + (n.start - G.t) * pps, x2 = nowX + (n.end - G.t) * pps;
+      if (x2 < 0 || x1 > W) continue;
+      const free = n.pitch === null, gold = n.type === 'golden';
+      const h = free ? noteH * 1.3 : noteH, y = (free ? yOf(mid) : yOf(n.pitch)) - h / 2, w = Math.max(x2 - x1, 6);
+      rr(c, x1, y, w, h, h / 2);
+      c.fillStyle = gold ? 'rgba(255,200,61,.32)' : free ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.2)'; c.fill();
+      c.lineWidth = n === G.active ? 3 : 2;
+      c.strokeStyle = gold ? 'rgba(255,200,61,.95)' : 'rgba(255,255,255,.6)';
+      if (free) c.setLineDash([5, 5]); c.stroke(); c.setLineDash([]);
+      const hits = n.hits[p.i];
+      if (hits && hits.length) {
+        c.save(); rr(c, x1, y, w, h, h / 2); c.clip();
+        c.fillStyle = gold ? '#ffd35c' : p.color; c.shadowColor = c.fillStyle; c.shadowBlur = 14;
+        for (const [a, b] of hits) {
+          const xa = nowX + (a - G.t) * pps, xb = nowX + (b - G.t) * pps;      // same time axis as the note itself
+          c.fillRect(xa, y, Math.max(xb - xa, 2), h);
+        }
+        c.restore();
+      }
+    }
+    c.restore();
+
+    // this player's voice
+    const headX = nowX - lat * pps;
+    if (G.state === 'playing' && p.counts && p.midi !== null) {
+      const ref = G.active && G.active.pitch !== null ? G.active.pitch : (G.lastRef ?? mid);
+      const folded = ref + wrap12(p.midi - ref);
+      const y = clamp(yOf(folded), laneTop - 6, laneTop + laneH + 6);
+      p.y = p.y == null ? y : p.y + (y - p.y) * 0.4;
+      p.trail.push({ t: G.t, y: p.y });
+    }
+    while (p.trail.length && G.t - p.trail[0].t > 1.4) p.trail.shift();
+    c.lineCap = 'round'; c.lineWidth = duo ? 6 : 8;
+    for (let i = 1; i < p.trail.length; i++) {
+      const a = p.trail[i - 1], b = p.trail[i];
+      if (b.t - a.t > 0.12) continue;
+      c.strokeStyle = `rgba(${p.rgb},${Math.max(0, 1 - (G.t - b.t) / 1.4) * 0.85})`;
+      c.beginPath(); c.moveTo(headX - (G.t - a.t) * pps, a.y); c.lineTo(headX - (G.t - b.t) * pps, b.y); c.stroke();
+    }
+    const last = p.trail[p.trail.length - 1], rad = duo ? 9 : 12;
+    if (last && G.t - last.t < 0.15) {
+      fxAura(c, p, headX, last.y, rad, now);
+      c.save(); c.shadowColor = p.color; c.shadowBlur = 22; c.fillStyle = p.color;
+      c.beginPath(); c.arc(headX, last.y, rad, 0, 7); c.fill(); c.restore();
+      c.lineWidth = 3; c.strokeStyle = '#fff'; c.beginPath(); c.arc(headX, last.y, rad, 0, 7); c.stroke();
+    }
+  });
+
+  fxDraw(c, now);
+  drawLyrics();
+}
+
+function drawLyrics() {
+  const c = ctx2, lines = G.chart.lines;
+  while (G.li + 1 < lines.length && lines[G.li + 1].start - 1.2 <= G.t) G.li++;
+  const cur = lines[G.li], next = lines[G.li + 1];
+  const base = clamp(W * 0.042, 26, 64), y = H * 0.8;
+  if (cur) lyricLine(cur, y, base, true);
+  if (next) lyricLine(next, y + base * 1.45, base * 0.72, false);
+}
+function lyricLine(line, y, size, active) {
+  const c = ctx2;
+  const show = s => s.text.replace(/~/g, '');          // '~' only marks a held note
+  const measure = () => { c.font = `800 ${size}px ${FONT}`; return line.syl.map(s => c.measureText(show(s)).width); };
+  let ws = measure(), total = ws.reduce((a, b) => a + b, 0);
+  if (total > W * 0.92) { size *= W * 0.92 / total; ws = measure(); total = ws.reduce((a, b) => a + b, 0); }
+  c.textBaseline = 'alphabetic'; c.textAlign = 'left'; c.lineJoin = 'round';
+  let x = (W - total) / 2;
+  line.syl.forEach((s, i) => {
+    c.lineWidth = size * 0.16; c.strokeStyle = 'rgba(18,8,40,.9)'; c.strokeText(show(s), x, y);
+    c.fillStyle = active ? '#fff' : 'rgba(255,255,255,.55)'; c.fillText(show(s), x, y);
+    if (active) {
+      const p = clamp((G.t - s.start) / (s.end - s.start), 0, 1);
+      if (p > 0) {
+        c.save(); c.beginPath(); c.rect(x - 2, y - size, ws[i] * p + 2, size * 1.5); c.clip();
+        c.fillStyle = '#ffc83d'; c.fillText(show(s), x, y); c.restore();
+      }
+    }
+    x += ws[i];
+  });
+}
+
+/* =====================================================================
+   Settings dialog (mic test, gate, delay, difficulty)
+   ===================================================================== */
+const dlg = $('#settings');
+const secs = [];                                   // the per-player sections currently shown in the dialog
+
+async function fillMics(sel, wanted) {
+  sel.replaceChildren();
+  const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput');
+  devs.forEach((d, i) => sel.append(el('option', { value: d.deviceId, textContent: d.label || 'Microphone ' + (i + 1) })));
+  if (devs.some(d => d.deviceId === wanted)) sel.value = wanted;
+  return devs;
+}
+async function openPlayerMic(i) {
+  const sec = secs[i], msg = sec.querySelector('.micmsg'), p = players[i];
+  try {
+    await p.openMic(settings.mics[i], settings.chans[i]);
+    const devs = await fillMics(sec.querySelector('.micsel'), settings.mics[i]);
+    const cur = p.stream.getAudioTracks()[0].getSettings().deviceId;
+    if (cur && devs.some(d => d.deviceId === cur)) sec.querySelector('.micsel').value = cur;
+    msg.textContent = 'Microphone ready. Sing a note and watch the bar.';
+  } catch (e) { msg.textContent = micError(e); }
+}
+function buildPlayerSettings() {
+  const box = $('#pSettings'); box.replaceChildren(); secs.length = 0;
+  const duo = settings.players === 2;
+  activePlayers().forEach(p => {
+    const i = p.i, sec = el('fieldset', { className: 'psec' });
+    sec.style.setProperty('--c', p.color);
+    sec.innerHTML = `<legend>${duo ? 'Player ' + (i + 1) : 'Your microphone'}</legend>
+      <div class="field"><label>Name</label><input type="text" class="nameIn" maxlength="16" placeholder="Player ${i + 1}"></div>
+      <div class="field"><label>Microphone</label><select class="micsel"></select>
+        <select class="chansel" aria-label="Which channel of this microphone">
+          <option value="mix">Use the whole microphone</option><option value="left">Left channel only</option><option value="right">Right channel only</option></select>
+        <p class="hint micmsg">Allow microphone access when your browser asks.</p></div>
+      <div class="field"><label>Noise gate</label>
+        <div class="meter" aria-hidden="true"><i></i><b></b></div>
+        <input type="range" class="gate" min="2" max="80" step="1" aria-label="Noise gate">
+        <div class="readout"><span>Sing and watch the bar. Keep room noise below the gold line.</span><strong class="noteOut">–</strong></div></div>`;
+    sec.querySelector('.nameIn').value = settings.names[i] === 'Player ' + (i + 1) ? '' : settings.names[i];
+    sec.querySelector('.chansel').value = settings.chans[i];
+    sec.querySelector('.gate').value = settings.gates[i];
+    sec.querySelector('.nameIn').addEventListener('input', e => {
+      settings.names[i] = e.target.value.trim() || 'Player ' + (i + 1); players[i].name = settings.names[i]; LS.set('names', settings.names);
+    });
+    sec.querySelector('.micsel').addEventListener('change', async e => {
+      settings.mics[i] = e.target.value; LS.set(i ? 'micId2' : 'micId', settings.mics[i]); await openPlayerMic(i);
+    });
+    sec.querySelector('.chansel').addEventListener('change', async e => {
+      settings.chans[i] = e.target.value; LS.set('chan' + (i + 1), settings.chans[i]); await openPlayerMic(i);
+    });
+    sec.querySelector('.gate').addEventListener('input', e => { settings.gates[i] = +e.target.value; LS.set(i ? 'gate2' : 'gate', settings.gates[i]); });
+    if (tourPrevPlayers !== null) sec.querySelector('.nameIn').closest('.field').hidden = true;   // names come from the tournament
+    box.append(sec); secs[i] = sec;
+  });
+}
+function meterLoop() {
+  if (!dlg.open) return;
+  activePlayers().forEach(p => {
+    const sec = secs[p.i]; if (!sec) return;
+    p.sample();
+    sec.querySelector('.meter i').style.width = (meterPos(p.level) * 100) + '%';
+    sec.querySelector('.meter b').style.left = `calc(${settings.gates[p.i]}% - 1px)`;
+    sec.querySelector('.noteOut').textContent = p.voiced ? noteName(p.midi) : '–';
+  });
+  requestAnimationFrame(meterLoop);
+}
+async function openSettings() {
+  getAC();
+  buildPlayerSettings();
+  $('#lat').value = settings.latency; $('#latOut').textContent = settings.latency;
+  $('#tol').value = String(settings.tol); $('#rlang').value = settings.rlang; $('#autosync').checked = settings.autoSync; $('#fxOn').checked = settings.fx;
+  dlg.showModal();
+  const act = activePlayers();
+  for (const p of act) await openPlayerMic(p.i);
+  // two players, but both ended up on the same physical mic: move player 2 to another one if there is one
+  if (act.length === 2 && players[0].stream && players[1].stream && settings.chans[0] === settings.chans[1]) {
+    const g0 = players[0].stream.getAudioTracks()[0].getSettings(), g1 = players[1].stream.getAudioTracks()[0].getSettings();
+    if (g0.groupId === g1.groupId || g0.deviceId === g1.deviceId) {
+      const devs = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput' && d.groupId !== g0.groupId && d.deviceId !== 'default' && d.deviceId !== 'communications');
+      if (devs.length) { settings.mics[1] = devs[0].deviceId; LS.set('micId2', settings.mics[1]); await openPlayerMic(1); }
+      else secs[1].querySelector('.micmsg').textContent = 'Only one microphone was found. Plug in the second mic, or use the left and right channels of one stereo device.';
+    }
+  }
+  requestAnimationFrame(meterLoop);
+}
+$('#btnSettings').addEventListener('click', openSettings);
+$('#btnCloseSettings').addEventListener('click', () => dlg.close());
+dlg.addEventListener('close', () => { if (tourPrevPlayers !== null) { settings.players = tourPrevPlayers; tourPrevPlayers = null; } });
+$('#autosync').addEventListener('change', e => { settings.autoSync = e.target.checked; LS.set('autosync', settings.autoSync); });
+$('#fxOn').addEventListener('change', e => { settings.fx = e.target.checked; LS.set('fx', settings.fx); if (!settings.fx) fxReset(); });
+$('#lat').addEventListener('input', e => { settings.latency = +e.target.value; $('#latOut').textContent = settings.latency; LS.set('latency', settings.latency); });
+$('#tol').addEventListener('change', e => { settings.tol = +e.target.value; LS.set('tol', settings.tol); });
+$('#rlang').addEventListener('change', e => { settings.rlang = e.target.value; LS.set('rlang', settings.rlang); });
+
+function setPlayers(n) {
+  settings.players = n; LS.set('players', n);
+  $('#mode1').setAttribute('aria-pressed', String(n === 1)); $('#mode2').setAttribute('aria-pressed', String(n === 2));
+}
+$('#mode1').addEventListener('click', () => setPlayers(1));
+$('#mode2').addEventListener('click', () => {
+  setPlayers(2);
+  if (settings.mics[0] === settings.mics[1] && settings.chans[0] === settings.chans[1]) openSettings();   // first time: choose the two mics
+});
+setPlayers(settings.players === 2 ? 2 : 1);
+
+/* =====================================================================
+   Google Drive: a static page can do this with Google Identity Services plus the Drive REST API.
+   Read-only access, nothing is uploaded, files are downloaded only when you play them.
+   ===================================================================== */
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+const driveCfg = () => LS.get('drive', {});
+const driveSet = patch => LS.set('drive', { ...driveCfg(), ...patch });
+const drive = { token: null, exp: 0, client: null, clientId: '', pending: null };
+const isFolderMime = m => m === 'application/vnd.google-apps.folder';
+
+function loadGsi() {
+  return new Promise((res, rej) => {
+    if (window.google && google.accounts && google.accounts.oauth2) return res();
+    const sc = document.createElement('script'); sc.src = 'https://accounts.google.com/gsi/client'; sc.async = true;
+    sc.onload = () => res(); sc.onerror = () => rej(new Error('Could not load Google sign-in. Check your internet connection.'));
+    document.head.append(sc);
+  });
+}
+async function driveToken() {
+  if (drive.token && Date.now() < drive.exp - 60000) return drive.token;
+  const cfg = driveCfg();
+  if (!cfg.clientId) throw new Error('Add your Google Client ID first (Google Drive button).');
+  if (location.protocol === 'file:') throw new Error('Google sign-in does not work from a file:// page. Open the app through localhost or GitHub Pages.');
+  await loadGsi();
+  if (!drive.client || drive.clientId !== cfg.clientId) {
+    drive.clientId = cfg.clientId;
+    drive.client = google.accounts.oauth2.initTokenClient({
+      client_id: cfg.clientId, scope: DRIVE_SCOPE,
+      callback: r => {
+        const p = drive.pending; drive.pending = null; if (!p) return;
+        if (r.error) p.rej(new Error(r.error_description || r.error));
+        else { drive.token = r.access_token; drive.exp = Date.now() + (+r.expires_in || 3600) * 1000; driveSet({ signedIn: true }); p.res(drive.token); }
+      },
+      error_callback: e => {
+        const p = drive.pending; drive.pending = null; if (!p) return;
+        p.rej(new Error(e.type === 'popup_closed' ? 'The Google sign-in window was closed before it finished.'
+          : e.type === 'popup_failed_to_open' ? 'Your browser blocked the Google sign-in window. Allow pop-ups for this page and try again.'
+          : (e.message || e.type || 'Google sign-in failed.')));
+      }
+    });
+  }
+  return new Promise((res, rej) => { drive.pending = { res, rej }; drive.client.requestAccessToken({ prompt: cfg.signedIn ? '' : 'consent' }); });
+}
+async function driveApi(path, params = {}, asBlob = false, retry = true) {
+  const tok = await driveToken(), u = new URL('https://www.googleapis.com/drive/v3/' + path);
+  for (const [k, v] of Object.entries({ supportsAllDrives: 'true', ...params })) if (v !== '' && v != null) u.searchParams.set(k, v);
+  const r = await fetch(u, { headers: { Authorization: 'Bearer ' + tok } });
+  if (r.status === 401 && retry) { drive.token = null; return driveApi(path, params, asBlob, false); }
+  if (!r.ok) {
+    let msg = ''; try { msg = (await r.json()).error.message; } catch {}
+    throw new Error(`Google Drive refused the request (${r.status}). ${msg}`.trim());
+  }
+  return asBlob ? r.blob() : r.json();
+}
+async function driveList(q, fields = 'nextPageToken,files(id,name,mimeType,parents,size,modifiedTime)') {
+  const out = []; let pageToken = '';
+  do {
+    const r = await driveApi('files', { q, fields, pageSize: 1000, pageToken, includeItemsFromAllDrives: 'true' });
+    out.push(...(r.files || [])); pageToken = r.nextPageToken || '';
+  } while (pageToken);
+  return out;
+}
+async function pool(items, n, fn) {
+  const out = new Array(items.length); let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) { const k = i++; out[k] = await fn(items[k], k); } }));
+  return out;
+}
+// Downloaded files are kept in the browser (Cache API), so a song is only fetched once.
+const driveCacheKey = k => 'https://singalong.local/drive/' + encodeURIComponent(k);
+async function driveCached(key) { try { return !!(await (await caches.open('singalong-drive')).match(driveCacheKey(key))); } catch { return false; } }
+async function driveBlob(id, key = id) {
+  const ck = driveCacheKey(key);
+  try { const hit = await (await caches.open('singalong-drive')).match(ck); if (hit) return await hit.blob(); } catch {}
+  const blob = await driveApi('files/' + id, { alt: 'media' }, true);
+  try { await (await caches.open('singalong-drive')).put(ck, new Response(blob)); } catch {}
+  return blob;
+}
+const driveSmall = new Map();                          // tiny files (charts, covers) fetched while scanning
+async function driveFileObj(f) {
+  if (driveSmall.has(f.id)) return driveSmall.get(f.id);
+  const blob = await driveBlob(f.id, f.key || f.id);
+  return new File([blob], f.name, { type: f.mimeType || blob.type });
+}
+// A big video would delay the song start, so fetch it in the background and use it next time.
+const driveVideoFn = (id, key, size) => async () => {
+  if (!(await driveCached(key)) && size > 25e6) {
+    driveBlob(id, key).catch(() => {});
+    toast('This song’s video is large. It is downloading in the background and will play next time.', 7000);
+    return null;
+  }
+  return URL.createObjectURL(await driveBlob(id, key));
+};
+async function driveScan(rootId, onProgress) {
+  const groups = new Map(), pathOf = new Map([[rootId, '']]), small = [];
+  let level = [rootId], seen = 0, depth = 0;
+  while (level.length && depth < 8) {
+    const batches = []; for (let i = 0; i < level.length; i += 20) batches.push(level.slice(i, i + 20));
+    const lists = await pool(batches, 4, b => driveList(`(${b.map(id => `'${id}' in parents`).join(' or ')}) and trashed = false`));
+    const next = [];
+    for (const f of lists.flat()) {
+      const par = (f.parents || []).find(p => pathOf.has(p)); if (par === undefined) continue;
+      const base = pathOf.get(par); seen++;
+      if (isFolderMime(f.mimeType)) { pathOf.set(f.id, base ? base + '/' + f.name : f.name); next.push(f.id); }
+      else if (!f.mimeType.startsWith('application/vnd.google-apps')) {
+        const key = f.id + '@' + (f.modifiedTime || ''), g = () => driveFileObj({ id: f.id, key, name: f.name, mimeType: f.mimeType });
+        g.driveId = f.id; g.driveKey = key; g.size = +f.size || 0;
+        groupAdd(groups, base, f.name, g);
+        if ((/\.(json|txt)$/i.test(f.name) && g.size <= 2e6) || (IMG_EXT.test(f.name) && g.size <= 4e6)) small.push({ f, key });
+      }
+    }
+    onProgress && onProgress(`Looking through Google Drive… ${seen} items in ${pathOf.size - 1} folders`);
+    level = next; depth++;
+  }
+  let done = 0;
+  await pool(small, 8, async ({ f, key }) => {
+    try { driveSmall.set(f.id, new File([await driveBlob(f.id, key)], f.name, { type: f.mimeType })); } catch {}
+    if (++done % 10 === 0) onProgress && onProgress(`Reading song files… ${done} of ${small.length}`);
+  });
+  return groups;
+}
+async function driveReloadInto(id, replace) {
+  try {
+    toast('Looking through Google Drive…', 90000);
+    const groups = await driveScan(id, m => toast(m, 90000));
+    if (!replace) library.songs = library.songs.filter(s => !(s.id && s.id.startsWith(`drive:${id}/`)));   // swap out an older copy of this folder
+    await loadGroups(groups, replace, { drive: true, id }, false);
+    updateReopen();
+  } catch (e) { console.warn(e); toast('Google Drive: ' + e.message, 14000); }
+}
+
+/* ----- the Google Drive window ----- */
+const dd = $('#driveDlg');
+let driveSel = null, driveStack = [];
+const parseFolderId = t => {
+  t = (t || '').trim();
+  const m = t.match(/folders\/([A-Za-z0-9_-]{10,})/) || t.match(/[?&]id=([A-Za-z0-9_-]{10,})/);
+  if (m) return m[1];
+  return /^[A-Za-z0-9_-]{15,}$/.test(t) ? t : '';
+};
+function openDrive() {
+  const c = driveCfg(), msg = $('#driveMsg');
+  $('#driveClient').value = c.clientId || '';
+  $('#driveOrigin').textContent = location.protocol === 'file:' ? '(this page is opened as a file, so serve it from localhost first)' : location.origin;
+  $('#driveHelp').open = !c.clientId;
+  driveSel = c.folderId ? { id: c.folderId, name: c.folderName || c.folderId } : null;
+  $('#driveFolder').value = driveSel ? driveSel.name : '';
+  $('#driveBrowse').hidden = true; msg.textContent = '';
+  $('#driveWho').textContent = drive.token ? 'Signed in.' : '';
+  dd.showModal();
+}
+async function driveSignInClick() {
+  const msg = $('#driveMsg'), id = $('#driveClient').value.trim();
+  if (!id) { msg.textContent = 'Paste your Google Client ID first (see the steps above).'; return false; }
+  driveSet({ clientId: id }); msg.textContent = 'Opening Google sign-in…';
+  try {
+    await driveToken();
+    let who = 'Signed in.';
+    try { const a = await driveApi('about', { fields: 'user(displayName,emailAddress)' }); who = 'Signed in as ' + (a.user.emailAddress || a.user.displayName) + '.'; } catch {}
+    $('#driveWho').textContent = who; msg.textContent = ''; return true;
+  } catch (e) { msg.textContent = e.message; return false; }
+}
+async function driveBrowseTo(id, name) {
+  const box = $('#driveBrowse'), msg = $('#driveMsg');
+  box.hidden = false; box.replaceChildren(el('div', { className: 'hint', textContent: 'Loading…', style: 'padding:8px' }));
+  try {
+    let folders;
+    if (id === '#top') folders = [{ id: 'root', name: 'My Drive' }, { id: '#shared', name: 'Shared with me' }];
+    else if (id === '#shared') folders = await driveList("sharedWithMe = true and mimeType = 'application/vnd.google-apps.folder' and trashed = false", 'nextPageToken,files(id,name)');
+    else folders = await driveList(`'${id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`, 'nextPageToken,files(id,name)');
+    folders.sort((a, b) => a.name.localeCompare(b.name));
+    box.replaceChildren();
+    const head = el('div', { className: 'dhead' }, el('span', { textContent: driveStack.map(x => x.name).join(' / ') || 'Choose where to look' }));
+    const actions = el('span');
+    if (driveStack.length) { const back = el('button', { className: 'btn ghost', textContent: 'Back' }); back.addEventListener('click', () => { driveStack.pop(); const t = driveStack[driveStack.length - 1]; driveBrowseTo(t ? t.id : '#top'); }); actions.append(back); }
+    if (id !== '#top' && id !== '#shared') {
+      const use = el('button', { className: 'btn primary', textContent: 'Use this folder', style: 'margin-left:6px' });
+      use.addEventListener('click', () => { driveSel = { id, name: name || driveStack[driveStack.length - 1].name }; $('#driveFolder').value = driveSel.name; box.hidden = true; });
+      actions.append(use);
+    }
+    head.append(actions); box.append(head);
+    if (!folders.length) box.append(el('div', { className: 'hint', textContent: 'No folders here.', style: 'padding:8px' }));
+    for (const f of folders) {
+      const b = el('button', { className: 'dentry' }, el('span', { textContent: '📁' }), el('span', { textContent: f.name }));
+      b.addEventListener('click', () => { driveStack.push({ id: f.id, name: f.name }); driveBrowseTo(f.id, f.name); });
+      box.append(b);
+    }
+  } catch (e) { box.hidden = true; msg.textContent = e.message; }
+}
+async function driveLoadClick() {
+  const msg = $('#driveMsg'), clientId = $('#driveClient').value.trim();
+  if (!clientId) { msg.textContent = 'Paste your Google Client ID first (see the steps above).'; return; }
+  driveSet({ clientId });
+  const typed = $('#driveFolder').value.trim();
+  const id = (driveSel && typed === driveSel.name) ? driveSel.id : parseFolderId(typed);
+  if (!id) { msg.textContent = 'Choose a folder with Browse, or paste a link to a Drive folder.'; return; }
+  try {
+    msg.textContent = 'Signing in…'; await driveToken();
+    msg.textContent = 'Checking the folder…';
+    const meta = await driveApi('files/' + id, { fields: 'id,name,mimeType' });
+    if (!isFolderMime(meta.mimeType)) throw new Error('That link points to a file, not a folder.');
+    driveSet({ folderId: meta.id, folderName: meta.name });
+    const add = $('#driveAdd').checked; dd.close();
+    await driveReloadInto(meta.id, !add);
+  } catch (e) { msg.textContent = e.message; }
+}
+$('#btnDrive').addEventListener('click', openDrive);
+$('#btnDrive2').addEventListener('click', openDrive);
+$('#driveSignIn').addEventListener('click', driveSignInClick);
+$('#driveBrowseBtn').addEventListener('click', async () => {
+  if (!drive.token && !(await driveSignInClick())) return;
+  driveStack = []; driveBrowseTo('#top');
+});
+$('#driveFolder').addEventListener('input', () => { if (driveSel && $('#driveFolder').value.trim() !== driveSel.name) driveSel = null; });
+$('#driveLoad').addEventListener('click', driveLoadClick);
+$('#driveCancel').addEventListener('click', () => dd.close());
+$('#btnDriveRefresh').addEventListener('click', async () => {
+  const c = driveCfg(); if (!c.folderId) return;
+  const onlyDrive = library.songs.every(x => x.meta && x.meta.drive);
+  await driveReloadInto(c.folderId, onlyDrive);
+});
+
+/* =====================================================================
+   Party night and Championship (always two singers at once, mic 1 pink, mic 2 cyan)
+   ===================================================================== */
+let T = LS.get('tour', null);                         // the event in progress, saved so a refresh doesn't lose it
+const ui = { view: 'setup', type: 'party', names: LS.get('tourNames', ['', '', '', '']), rounds: 4, roundsAuto: true };
+let tourSaved = null, tourPrevPlayers = null;
+const saveT = () => LS.set('tour', T);
+const tbody = () => $('#tourBody');
+const isPt = () => settings.rlang === 'pt';
+
+function openMicCheck() { tourPrevPlayers = settings.players; settings.players = 2; openSettings(); }
+function restoreAfterTour() {
+  if (!tourSaved) return;
+  settings.players = tourSaved.players;
+  players[0].name = settings.names[0] || 'Player 1'; players[1].name = settings.names[1] || 'Player 2';
+  tourSaved = null;
+}
+function openTour(type) {
+  ui.type = type; $('#tourTitle').textContent = type === 'party' ? 'Party night' : 'Championship';
+  ui.view = (T && T.type === type && !T.finished) ? 'resume' : 'setup';
+  showScreen('tour'); renderTour();
+}
+function renderTour() {
+  ({ setup: viewSetup, resume: viewResume, match: viewMatch, board: viewBoard, bracket: viewBracket, end: viewEnd })[ui.view]();
+  $('#tour').scrollTop = 0;
+}
+const pName = i => T.players[i].name;
+const avg = p => p.songs ? Math.round(p.total / p.songs) : 0;
+
+function matchLabel() {
+  if (T.type === 'party') return `Round ${T.cur + 1} of ${T.rounds}`;
+  const nx = bracketNext(T.bracket), n = T.bracket.length;
+  return nx ? roundName(nx.r, n) : '';
+}
+function roundName(r, n) { return r === n - 1 ? 'Final' : r === n - 2 ? 'Semi-final' : r === n - 3 ? 'Quarter-final' : `Round ${r + 1}`; }
+function curMatch() {
+  if (T.type === 'party') { const m = T.sched[T.cur]; return m ? { pair: m.pair } : null; }
+  const nx = bracketNext(T.bracket); return nx ? { pair: [nx.m.a, nx.m.b], ref: nx } : null;
+}
+
+/* ----- setup ----- */
+function viewSetup() {
+  const b = tbody(); b.replaceChildren();
+  const party = ui.type === 'party', names = ui.names;
+  b.append(el('h1', { textContent: party ? 'Who is singing tonight?' : 'Who is in the championship?' }),
+    el('p', { className: 'sub', textContent: party
+      ? 'Pairs are drawn at random and sing at the same time. Everyone sings about the same number of times and the points add up across the night.'
+      : 'A random bracket. Each match is one song, both players sing at once, and the higher score moves on. Ties are sung again.' }));
+  const list = el('div', { className: 'plist' });
+  const info = el('p', { className: 'note' }), start = el('button', { className: 'btn primary', textContent: party ? 'Start the party' : 'Start the championship' });
+  const named = () => names.map(n => n.trim()).filter(Boolean).length;
+  const update = () => {
+    const n = named(), R = ui.roundsAuto ? n : ui.rounds;
+    start.disabled = n < 2;
+    if (party) { if (ui.roundsAuto) ui.rounds = n; info.textContent = n < 2 ? 'Add at least two players.' : `${R} song${R === 1 ? '' : 's'} tonight, so everyone sings about ${(2 * R / n).toFixed(1).replace('.0', '')} time${2 * R / n === 1 ? '' : 's'}.`; if (rounds) rounds.textContent = String(ui.roundsAuto ? n : ui.rounds); }
+    else info.textContent = n < 2 ? 'Add at least two players.' : `${n} players, ${n - 1} match${n === 2 ? '' : 'es'} to crown the champion.`;
+  };
+  let rounds = null;
+  names.forEach((n, i) => {
+    const inp = el('input', { type: 'text', value: n, maxLength: 16, placeholder: 'Player ' + (i + 1) });
+    inp.addEventListener('input', () => { names[i] = inp.value; LS.set('tourNames', names); update(); });
+    const rm = el('button', { className: 'btn ghost', textContent: 'Remove' });
+    rm.addEventListener('click', () => { if (names.length > 2) { names.splice(i, 1); LS.set('tourNames', names); viewSetup(); } });
+    list.append(el('div', { className: 'prow' }, el('span', { className: 'num', textContent: String(i + 1) }), inp, rm));
+  });
+  b.append(list);
+  const add = el('button', { className: 'btn', textContent: 'Add player' });
+  add.addEventListener('click', () => { if (names.length < 12) { names.push(''); LS.set('tourNames', names); viewSetup(); } });
+  b.append(el('div', { className: 'row' }, add));
+  if (party) {
+    rounds = el('b'); const minus = el('button', { className: 'btn', textContent: '−' }), plus = el('button', { className: 'btn', textContent: '+' });
+    minus.addEventListener('click', () => { ui.roundsAuto = false; ui.rounds = Math.max(1, (ui.roundsAuto ? named() : ui.rounds) - 1); update(); });
+    plus.addEventListener('click', () => { ui.roundsAuto = false; ui.rounds = Math.min(40, ui.rounds + 1); update(); });
+    b.append(el('div', { className: 'row' }, el('span', { textContent: 'Songs tonight' }), el('span', { className: 'stepper' }, minus, rounds, plus)));
+  }
+  b.append(info, el('div', { className: 'row' }, start));
+  start.addEventListener('click', startTournament);
+  update();
+}
+function startTournament() {
+  const raw = ui.names.map(n => n.trim()).filter(Boolean), seen = {};
+  const names = raw.map(n => { const k = n.toLowerCase(); seen[k] = (seen[k] || 0) + 1; return seen[k] > 1 ? `${n} ${seen[k]}` : n; });
+  if (names.length < 2) return;
+  if (!library.songs.length) { toast('Open your song folder first (or try the demo song), then come back.', 6000); return; }
+  if (settings.mics[0] === settings.mics[1] && settings.chans[0] === settings.chans[1]) { toast('Choose two different microphones first.', 6000); openMicCheck(); return; }
+  const party = ui.type === 'party', n = names.length;
+  T = { type: ui.type, players: names.map(name => ({ name, total: 0, songs: 0, best: 0, wins: 0 })), played: [], offer: null, rerolls: 0, finished: false };
+  if (party) { T.rounds = ui.roundsAuto ? n : ui.rounds; T.sched = makeSchedule(n, T.rounds).map(p => ({ pair: p, done: false, sa: null, sb: null })); T.cur = 0; }
+  else { T.bracket = makeBracket(n); bracketResolveByes(T.bracket); }
+  saveT(); ui.view = 'match'; renderTour();
+}
+
+/* ----- resume ----- */
+function viewResume() {
+  const b = tbody(); b.replaceChildren();
+  const party = T.type === 'party';
+  const prog = party ? `round ${T.cur + 1} of ${T.rounds}` : (bracketNext(T.bracket) ? matchLabel().toLowerCase() : 'finished');
+  const go = el('button', { className: 'btn primary', textContent: 'Resume' }), fresh = el('button', { className: 'btn', textContent: 'Start a new one' });
+  go.addEventListener('click', () => { ui.view = 'match'; renderTour(); });
+  fresh.addEventListener('click', () => { ui.view = 'setup'; renderTour(); });
+  b.append(el('h1', { textContent: party ? 'Party in progress' : 'Championship in progress' }),
+    el('div', { className: 'resume' }, el('p', { textContent: `${T.players.map(p => p.name).join(', ')}.`, style: 'margin:0 0 6px;font-weight:600' }),
+      el('p', { className: 'note', textContent: `You were at ${prog}.`, style: 'margin:0 0 16px' }), el('div', { className: 'row', style: 'margin:0' }, go, fresh)));
+}
+
+/* ----- one match: three songs to choose from ----- */
+function pickSongs(exclude = []) {
+  const all = library.songs, real = all.filter(s => !s.demo), base = real.length >= 3 ? real : all;
+  let pool = base.filter(s => !T.played.includes(s.id));
+  if (pool.length < Math.min(3, base.length)) { T.played = []; pool = base; }
+  const fresh = pool.filter(s => !exclude.includes(s.id));
+  return shuffle(fresh.length >= Math.min(3, pool.length) ? fresh : pool).slice(0, 3).map(s => s.id);
+}
+function currentOffer() {
+  const byId = new Map(library.songs.map(s => [s.id, s]));
+  if (!T.offer || !T.offer.length || !T.offer.every(id => byId.has(id))) { T.offer = pickSongs(); T.rerolls = 0; saveT(); }
+  return T.offer.map(id => byId.get(id));
+}
+function songCard(s, onPick) {
+  const h = hue(s.title), bs = LS.get('best', {})[s.id];
+  const cover = el('span', { className: 'cover', textContent: s.coverUrl ? '' : (s.title[0] || '♪').toUpperCase() });
+  cover.style.background = s.coverUrl ? `center/cover url("${s.coverUrl}")` : `linear-gradient(135deg,hsl(${h} 70% 56%),hsl(${(h + 55) % 360} 70% 34%))`;
+  const card = el('button', { className: 'offer', title: `Sing ${s.title}` }, cover, el('span', { className: 't', textContent: s.title }), el('span', { className: 'a', textContent: s.artist }),
+    ...(bs ? [el('span', { className: 'a', textContent: `Best ${bs.score.toLocaleString()} · ${bs.name}` })] : []));
+  card.addEventListener('click', onPick); return card;
+}
+function viewMatch() {
+  const b = tbody(); b.replaceChildren();
+  const m = curMatch();
+  if (!m) { endTour(); return; }
+  const [ia, ib] = m.pair;
+  const box = (i, mic, c, col) => { const d = el('div', { className: 'vsbox' }, el('div', { className: 'big', textContent: pName(i) }), el('div', { className: 'small', textContent: `takes mic ${mic} (${col})` })); d.style.setProperty('--c', c); return d; };
+  b.append(el('h1', { textContent: matchLabel() }),
+    el('div', { className: 'vs' }, box(ia, 1, 'var(--p1)', 'pink'), el('span', { className: 'vsmid', textContent: 'vs' }), box(ib, 2, 'var(--p2)', 'cyan')),
+    el('h2', { textContent: 'Choose a song together' }));
+  const offers = currentOffer();
+  const row = el('div', { className: 'offers' });
+  offers.forEach(s => row.append(songCard(s, () => startTourSong(s))));
+  b.append(row);
+  const again = el('button', { className: 'btn', textContent: T.rerolls ? 'No more shuffles' : 'Shuffle songs (1 left)' });
+  again.disabled = !!T.rerolls;
+  again.addEventListener('click', () => { T.offer = pickSongs(T.offer); T.rerolls = 1; saveT(); viewMatch(); });
+  b.append(el('div', { className: 'row' }, again));
+}
+function startTourSong(song) {
+  const m = curMatch(); if (!m) return;
+  const [ia, ib] = m.pair;
+  tourSaved = { players: settings.players };
+  settings.players = 2; players[0].name = pName(ia); players[1].name = pName(ib);
+  G.tour = { ia, ib };
+  startSong(song).then(() => { if (G.state === 'idle' && G.tour) { G.tour = null; restoreAfterTour(); } });   // e.g. the mics were not ready
+}
+function recordMatch(sa, sb) {
+  const m = curMatch(), [ia, ib] = m.pair, A = T.players[ia], B = T.players[ib];
+  A.total += sa; B.total += sb; A.songs++; B.songs++; A.best = Math.max(A.best, sa); B.best = Math.max(B.best, sb);
+  if (sa !== sb) T.players[sa > sb ? ia : ib].wins++;
+  if (T.type === 'party') { const mm = T.sched[T.cur]; mm.done = true; mm.sa = sa; mm.sb = sb; T.cur++; return false; }
+  if (sa === sb) return true;                                      // tie: same match, new songs
+  m.ref.m.sa = sa; m.ref.m.sb = sb; bracketAdvance(T.bracket, m.ref.r, m.ref.i, sa > sb ? ia : ib);
+  return false;
+}
+function tourContinue() {
+  const sa = G.pl[0].score, sb = G.pl[1].score, id = G.song.id;
+  const tie = recordMatch(sa, sb);
+  T.played.push(id); T.offer = null; T.rerolls = 0; saveT();
+  stopGame(); G.tour = null; restoreAfterTour(); showScreen('tour');
+  if (T.type === 'party') { if (T.cur >= T.rounds) { endTour(); return; } ui.view = 'board'; }
+  else { if (!bracketNext(T.bracket)) { endTour(); return; } ui.view = tie ? 'match' : 'bracket'; if (tie) toast('Tie! New songs coming up, sing again.', 5000); }
+  renderTour();
+}
+function endTour() { T.finished = true; saveT(); ui.view = 'end'; showScreen('tour'); renderTour(); }
+
+/* ----- standings, bracket, podium ----- */
+function standingsEl() {
+  const champ = T.type === 'champ';
+  const rows = T.players.map((p, i) => ({ ...p, i })).sort((x, y) => (champ ? (y.wins - x.wins || y.total - x.total) : (y.total - x.total || y.best - x.best)));
+  const box = el('div', { className: 'lb' });
+  rows.forEach((p, r) => box.append(el('div', { className: 'lbrow' + (r === 0 ? ' first' : '') },
+    el('span', { className: 'rank', textContent: String(r + 1) }), el('span', { className: 'who', textContent: p.name }),
+    el('span', { className: 'meta', textContent: p.songs ? `${champ ? p.wins + ' win' + (p.wins === 1 ? '' : 's') + ' · ' : ''}${p.songs} song${p.songs > 1 ? 's' : ''} · best ${p.best.toLocaleString()} · ${ratingFor(avg(p), settings.rlang)}` : 'not sung yet' }),
+    el('span', { className: 'tot', textContent: champ ? String(p.wins) : p.total.toLocaleString() }))));
+  return box;
+}
+function viewBoard() {
+  const b = tbody(); b.replaceChildren();
+  const done = T.cur, nx = T.sched[T.cur];
+  b.append(el('h1', { textContent: 'Leaderboard' }), el('p', { className: 'sub', textContent: `After ${done} of ${T.rounds} song${T.rounds === 1 ? '' : 's'}.` }), standingsEl());
+  const go = el('button', { className: 'btn primary', textContent: 'Next round' });
+  go.addEventListener('click', () => { ui.view = 'match'; renderTour(); });
+  b.append(el('p', { className: 'note', style: 'margin-top:22px', textContent: nx ? `Up next: ${pName(nx.pair[0])} and ${pName(nx.pair[1])}.` : '' }), el('div', { className: 'row' }, go));
+}
+function bracketEl() {
+  const nx = bracketNext(T.bracket), box = el('div', { className: 'bracket' });
+  T.bracket.forEach((round, r) => {
+    const col = el('div', { className: 'round' }, el('h3', { textContent: roundName(r, T.bracket.length) }));
+    round.forEach(m => {
+      const line = (i, sc) => el('div', { className: 'r' }, el('span', { className: i === null ? 'tbd' : (m.w === i ? 'win' : ''), textContent: i === null ? (m.bye ? 'bye' : 'to be decided') : pName(i) }),
+        el('span', { textContent: sc === null ? '' : sc.toLocaleString() }));
+      col.append(el('div', { className: 'mbox' + (nx && nx.m === m ? ' next' : '') }, line(m.a, m.sa), line(m.b, m.sb)));
+    });
+    box.append(col);
+  });
+  return box;
+}
+function viewBracket() {
+  const b = tbody(); b.replaceChildren();
+  const nx = bracketNext(T.bracket);
+  b.append(el('h1', { textContent: 'The bracket' }), bracketEl());
+  const go = el('button', { className: 'btn primary', textContent: 'Next match' });
+  go.addEventListener('click', () => { ui.view = 'match'; renderTour(); });
+  if (nx) b.append(el('p', { className: 'note', style: 'margin-top:16px', textContent: `Up next, ${roundName(nx.r, T.bracket.length).toLowerCase()}: ${pName(nx.m.a)} and ${pName(nx.m.b)}.` }), el('div', { className: 'row' }, go));
+}
+function viewEnd() {
+  const b = tbody(); b.replaceChildren();
+  const party = T.type === 'party';
+  const order = T.players.map((p, i) => ({ ...p, i }));
+  if (party) order.sort((x, y) => y.total - x.total || y.best - x.best);
+  const champ = party ? order[0].i : T.bracket[T.bracket.length - 1][0].w;
+  b.append(el('h1', { textContent: party ? `${order[0].name} wins the party!` : `${pName(champ)} is the champion!` }));
+  if (party) {
+    const pod = el('div', { className: 'podium' });
+    order.slice(0, 3).forEach((p, r) => {
+      const c = el('div', { className: 'pod p' + (r + 1) }, el('div', { className: 'pos', textContent: ['1st place', '2nd place', '3rd place'][r] }),
+        el('div', { className: 'nm', textContent: p.name }), el('div', { className: 'pts', textContent: p.total.toLocaleString() }),
+        el('div', { className: 'ttl', textContent: ratingFor(avg(p), settings.rlang) }));
+      pod.append(c);
+    });
+    b.append(pod, el('h2', { textContent: 'Final standings' }), standingsEl());
+  } else {
+    b.append(el('p', { className: 'sub', textContent: `${T.players.length} players, ${T.players.length - 1} matches.` }), bracketEl(), el('h2', { textContent: 'Tournament stats' }), standingsEl());
+  }
+  const again = el('button', { className: 'btn primary', textContent: party ? 'New party night' : 'New championship' });
+  again.addEventListener('click', () => { T = null; LS.set('tour', null); ui.view = 'setup'; renderTour(); });
+  b.append(el('div', { className: 'row', style: 'margin-top:26px' }, again));
+}
+
+$('#tourExit').addEventListener('click', () => { showScreen('lib'); });
+$('#tourMics').addEventListener('click', openMicCheck);
+$('#pmParty').addEventListener('click', () => openTour('party'));
+$('#pmChamp').addEventListener('click', () => openTour('champ'));
+
+/* =====================================================================
+   Wire up the library buttons and start
+   ===================================================================== */
+['#btnFolder', '#btnFolder2'].forEach(s => $(s).addEventListener('click', openFolder));
+$('#btnFiles').addEventListener('click', () => $('#fileInput').click());
+['#btnDemo', '#btnDemo2'].forEach(s => $(s).addEventListener('click', playDemo));
+
+(async () => {
+  if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext)
+    toast('Microphone needs https or localhost. Open this page from GitHub Pages or a local server.', 9000);
+  try {
+    lastHandle = (await idb.get('dir').catch(() => null)) || null;
+    try { await loadCachedLibrary(); }                             // instant: songs are listed straight away
+    catch (e) { console.warn(e); toast('Could not restore your saved songs: ' + (e.message || e.name)); }
+    renderLibrary(); updateReopen();
+    if (lastHandle) {
+      const p = await lastHandle.queryPermission({ mode: 'read' });
+      if (p === 'granted') scanHandle(lastHandle, true).then(updateReopen).catch(() => {});   // quiet refresh
+    }
+  } catch {}
+  updateReopen(); renderLibrary();
+})();
+</script>
+</body>
+</html>
